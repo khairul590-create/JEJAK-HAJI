@@ -1,0 +1,57 @@
+# Bina game daripada src/ dan terbitkan ke GitHub Pages (cawangan gh-pages)
+# setiap kali ada push ke main. Boleh juga dijalankan manual dari tab Actions.
+name: Terbit ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  terbit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kod main
+        uses: actions/checkout@v4
+
+      - name: Sediakan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Pasang kebergantungan
+        run: npm install --no-audit --no-fund
+
+      - name: Semak jenis & kompil TypeScript
+        run: npx -y -p typescript@5.9.3 tsc -p tsconfig.json
+
+      - name: Bina dist/jejak-haji.html
+        run: node build.mjs
+
+      - name: Ambil cawangan gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+
+      - name: Salin & tolak ke gh-pages
+        run: |
+          cp dist/jejak-haji.html site/index.html
+          touch site/.nojekyll
+          cd site
+          git add index.html .nojekyll
+          if git diff --cached --quiet; then
+            echo "Tiada perubahan pada game; tidak perlu terbit semula."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Terbit daripada main ${GITHUB_SHA::7}"
+          git push origin gh-pages

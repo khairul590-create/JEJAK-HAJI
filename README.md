@@ -46,6 +46,12 @@ dan boleh dibuka dalam game melalui Panduan → Rujukan atau Peta → Rujukan.
 Semua teks pendidikan ada dalam `src/00-config.ts` (DOA, READ, QUIZ_UMRAH, QUIZ_FINAL, ACH_LIST, LAP_TIPS).
 Nama game dan kredit: `CONFIG.title`, `CONFIG.credit`.
 
+## GitHub Pages
+Game ini diterbitkan di https://khairul590-create.github.io/JEJAK-HAJI/ daripada cawangan `gh-pages`.
+Setiap push ke `main` menjalankan `.github/workflows/pages.yml`: ia membina semula game daripada `src/`
+(tsc + `node build.mjs`) dan menyalin `dist/jejak-haji.html` ke `index.html` dalam `gh-pages`.
+Jika semakan TypeScript gagal, laman tidak dikemas kini — lihat tab Actions.
+
 ## Letak dalam Google Sites
 Sisip → Benamkan → Kod benaman → tampal isi `dist/jejak-haji.html`.
 (Atau muat naik fail itu ke mana-mana hos statik seperti GitHub Pages / Netlify.)
