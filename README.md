@@ -20,7 +20,8 @@ src/
                   kamera Belakang / Mata / Atas, label diunjur
 build.mjs         gabung semuanya menjadi satu fail HTML
 dist/jejak-haji.html   ← fail siap main (satu fail sahaja)
-models/           model 3D .glb daripada Blender (pilihan)
+models/           model 3D .glb daripada Blender (Kaabah) + fail sumber .blend
+blender/          skrip Blender yang menjana model (kaabah.py)
 docs/BLENDER.md   panduan membina model & render dengan Blender
 ```
 
@@ -42,6 +43,7 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   (Panduan → Panduan jemaah).
 - **Giroskop:** di telefon, gerakkan telefon untuk memandang sekeliling dalam kamera Mata 3D (Tetapan).
 - **Model Blender (.glb):** model 3D luaran boleh menggantikan model asas. Lihat [docs/BLENDER.md](docs/BLENDER.md).
+  Kaabah dalam paparan 3D kini dibina dengan Blender oleh `blender/kaabah.py` (`models/kaabah.glb`, sumber `models/kaabah.blend`).
 
 ## Paparan 3D
 - Butang **3D** di bar atas (atau kekunci V). Mod 2D berfungsi tanpa internet; mod 3D perlukan internet

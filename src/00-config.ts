@@ -306,7 +306,8 @@ interface Model3D {
   replace?: M3["k"]; // sembunyikan model asas jenis ini, contohnya "kaabah"
 }
 const MODELS3D: Model3D[] = [
-  // Contoh: { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },
+  // Kaabah dibina dengan Blender oleh blender/kaabah.py (termasuk Hijir Ismail, pintu, Mizab & Hajarul Aswad)
+  { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },
 ];
 
 // ---------------------------------------------------------------------

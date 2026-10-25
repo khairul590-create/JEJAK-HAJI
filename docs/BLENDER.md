@@ -14,6 +14,21 @@ Untuk menjadikan model kelihatan "seperti render", **bake** pencahayaan ke dalam
 
 ## A. Model 3D untuk game (.glb)
 
+### Contoh siap: Kaabah
+![Render Cycles model Kaabah](../models/kaabah-render.jpg)
+
+Model Kaabah dalam game dibina sepenuhnya oleh skrip [`blender/kaabah.py`](../blender/kaabah.py): geometri, tekstur kiswah
+(hizam, qanadil, sitara pintu, kain putih musim haji), Syazarwan, Hijir Ismail, Mizab dan Hajarul Aswad, kemudian
+*bake* AO dengan Cycles dan eksport ke `models/kaabah.glb`. Fail sumber `models/kaabah.blend` boleh dibuka terus dalam Blender.
+
+Jalankan semula selepas mengubah skrip:
+```
+blender --background --python blender/kaabah.py
+JH_RENDER=1 blender --background --python blender/kaabah.py   # juga hasilkan models/kaabah-render.jpg
+```
+Tanpa Blender penuh, modul Python `bpy` (pip install bpy, perlukan Python 3.13 untuk bpy 5.x) juga boleh menjalankan skrip ini:
+`python blender/kaabah.py`.
+
 ### 1. Sediakan projek Blender
 - *Scene Properties → Units*: **Metric**, Unit Scale **1.0**. Dalam game, **1 m Blender = 1 unit 3D = 10 piksel peta 2D**.
 - Paksi: **+X Blender = timur** (kanan peta 2D), **+Y Blender = utara** (atas peta 2D), **+Z = ke atas**.
