@@ -3000,25 +3000,41 @@ function sayWeb(text, lang = "ms") {
  * `then` dijalankan bila klip habis — untuk susulan, contoh: doa Arab
  * kemudian maksudnya.
  */
+// Satu klip pada satu masa. Klip baharu beratur di belakang klip semasa;
+// `flush` buang barisan dan potong klip semasa — kecuali klip semasa doa
+// (key -ar/-ms) dan klip baharu bukan doa: arahan langkah tunggu doa habis.
+const isDoaClip = (k) => /-(ar|ms)$/.test(k);
+let clipQ = [];
+let clipNow = "";
+let clipTok = 0;
 function sayClip(key, text, lang = "ms", flush = false, then) {
     if (!speechOn() || !key)
         return;
-    if (flush)
+    const play = () => sayClip(key, text, lang, false, then);
+    if (flush && !(clipNow && isDoaClip(clipNow) && !isDoaClip(key)))
         hush();
+    else if (clipNow) {
+        if (flush)
+            clipQ = [];
+        clipQ.push(play);
+        return;
+    }
     if (!VOICE.el) {
         VOICE.el = document.createElement("audio");
         VOICE.el.preload = "auto";
         document.body.appendChild(VOICE.el);
     }
     const a = VOICE.el;
-    let done = false;
+    const tok = ++clipTok;
+    clipNow = key;
     const finish = (next) => {
-        if (done)
-            return;
-        done = true;
-        a.onerror = null;
-        a.onended = null;
+        if (tok !== clipTok)
+            return; // klip ini sudah dipotong — abaikan callback lewat
+        clipTok++;
+        clipNow = "";
         next?.();
+        if (!clipNow)
+            clipQ.shift()?.();
     };
     const fallback = () => finish(() => { sayWeb(text, lang); then?.(); });
     a.onerror = fallback;
@@ -3031,6 +3047,9 @@ function sayStep(s) {
         sayClip(s.id, s.text, "ms", true);
 }
 function hush() {
+    clipQ = [];
+    clipNow = "";
+    clipTok++;
     if (VOICE.el) {
         VOICE.el.pause();
         VOICE.el.currentTime = 0;

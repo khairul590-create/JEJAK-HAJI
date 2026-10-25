@@ -12,7 +12,7 @@ Guna:
     python3 tools/gen-voice.py --force   # jana semula semua
 
 Guna kod TTS ElevenLabs sedia ada dalam Hermes (`tools.tts_tool_providers`).
-Suara: Alice (BM) dan Habibah (doa Arab) — pilihan pemilik.
+Suara: Ashraf (BM) dan Habibah (doa Arab) — pilihan pemilik.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 AUDIO = ROOT / "audio"
 HERMES = pathlib.Path("/root/.hermes/hermes-agent")
 MS, AR = "ms", "ar"
-VOICE = {MS: "Xb7hH8MSUJpSbSDYk0k2", AR: "w4LX7bK479eHGM1k15Em"}  # Alice, Habibah
+VOICE = {MS: "NHFTLozDZneDWyQjRGAO", AR: "w4LX7bK479eHGM1k15Em"}  # Ashraf, Habibah
 MODEL = "eleven_multilingual_v2"
 DELAY = 0.5
 RETRY_MAX = 4

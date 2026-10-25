@@ -98,6 +98,33 @@ def main() -> int:
             finally:
                 (ROOT / "audio" / "miqat_board.mp3.hold").rename(ROOT / "audio" / "miqat_board.mp3")
 
+            # 3. Doa sedang dibaca + langkah baharu -> langkah tunggu, doa tidak dipotong
+            ctx = br.new_context(viewport={"width": 390, "height": 780})
+            p = ctx.new_page()
+            p.add_init_script(STUB + """
+window.__played = [];
+const P0 = HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play = function () {
+  this.playbackRate = 4; __played.push(this.src.split('/').pop()); return P0.call(this); };
+addEventListener('ended', e => __played.push('END ' + e.target.src.split('/').pop()), true);
+""")
+            # dedahkan fungsi dalam IIFE untuk ujian sahaja
+            p.route("**/dist/main.js", lambda r: r.fulfill(
+                response=r.fetch(),
+                body=r.fetch().text().rstrip().removesuffix("})();") + "window.__t={showDoa,sayStep,curStep};})();",
+                content_type="text/javascript"))
+            start(p, [])
+            p.wait_for_timeout(2000)
+            p.evaluate("""() => { __played = []; __t.showDoa('talbiah');
+                                  setTimeout(() => __t.sayStep(__t.curStep()), 500); }""")
+            p.wait_for_timeout(9000)
+            seq = p.evaluate("() => __played")
+            print("DOA + LANGKAH:", seq)
+            want = ["talbiah-ar.mp3", "END talbiah-ar.mp3", "talbiah-ms.mp3", "END talbiah-ms.mp3", "miqat_board.mp3"]
+            if seq[:5] != want:
+                fails.append(f"doa dipotong / turutan salah: {seq}")
+            ctx.close()
+
             br.close()
             if fails:
                 print("GAGAL:", *fails, sep="\n  - ")
