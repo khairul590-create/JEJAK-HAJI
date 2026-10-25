@@ -3,31 +3,40 @@
 
 Sebelum ini permainan guna Web Speech API — bunyi berbeza setiap peranti dan
 kedengaran seperti robot. Di sini setiap ayat dijana sekali menjadi fail MP3
-dengan suara tetap: ms-MY-OsmanNeural (Bahasa Melayu) dan ar-SA-HamedNeural
-(Arab untuk doa). Permainan hanya memainkan fail, jadi bunyi seragam.
+dengan suara tetap (Gemini TTS). Permainan hanya memainkan fail, jadi bunyi
+seragam pada semua peranti dan tiada API key pada pelayar.
 
 Guna:
-    npx tsc -p tsconfig.json      # isi teks datang dari build/js
-    python3 tools/gen-voice.py    # tulis audio/*.mp3 (langkau yang sedia ada)
+    tsc -p tsconfig.json                 # teks datang dari build/js
+    python3 tools/gen-voice.py           # tulis klip yang belum ada
     python3 tools/gen-voice.py --force   # jana semula semua
 
-Perlukan: pip install edge-tts
-Nota: aiohttp 3.14.3 menolak sambungan dengan 403; aiohttp >= 3.14.5 berjalan.
+Guna kod TTS Gemini sedia ada dalam Hermes (`tools.tts_tool_providers`), jadi
+persona suara dan resolusi key ikut tetapan Hermes — skrip ini tidak menulis
+sendiri pelanggan Gemini.
+
+Nota: doa Arab sengaja TANPA persona Bahasa Melayu, supaya bacaan Arab
+kekal bacaan Arab.
 """
 
 from __future__ import annotations
 
-import asyncio
 import json
+import os
 import pathlib
+import re
 import subprocess
 import sys
+import time
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 AUDIO = ROOT / "audio"
-MS = "ms-MY-OsmanNeural"
-AR = "ar-SA-HamedNeural"
-WORKERS = 5
+HERMES = pathlib.Path("/root/.hermes/hermes-agent")
+MS, AR = "ms", "ar"
+# Quota Tier 1 Gemini TTS: 10 generate/min. Gen ~5s + jeda 4s = ~7/min,
+# bawah had. Naikkan bila quota naik.
+DELAY = 4.0
+RETRY_MAX = 4
 
 DUMP = r"""
 const vm = require("vm"), fs = require("fs");
@@ -53,39 +62,97 @@ process.stdout.write(JSON.stringify(out));
 
 
 def texts() -> dict[str, tuple[str, str]]:
-    env = dict(__import__("os").environ, V_MS=MS, V_AR=AR)
+    env = dict(os.environ, V_MS=MS, V_AR=AR)
     r = subprocess.run(["node", "-e", DUMP], cwd=ROOT, capture_output=True, text=True, env=env)
     if r.returncode:
-        sys.exit(f"Gagal baca teks dari build/js — jalankan dulu `npx tsc -p tsconfig.json`\n{r.stderr}")
+        sys.exit(f"Gagal baca teks dari build/js — jalankan dulu `tsc -p tsconfig.json`\n{r.stderr}")
     raw = json.loads(r.stdout)
     if not raw:
-        sys.exit("build/js tidak mengandungi data langkah/doa — jalankan semula `npx tsc -p tsconfig.json`")
+        sys.exit("build/js tidak mengandungi data langkah/doa — jalankan semula `tsc -p tsconfig.json`")
     return {k: (v[0], v[1]) for k, v in raw.items()}
+
+
+def load_hermes_config() -> dict:
+    """Konfigurasi TTS Gemini ikut config.yaml Hermes (bukan tetapan keras)."""
+    cfg_path = pathlib.Path("/root/.hermes/config.yaml")
+    try:
+        import yaml
+
+        raw = yaml.safe_load(cfg_path.read_text()) or {}
+    except Exception:
+        raw = {}
+    return dict(raw.get("tts", {}).get("gemini", {})) or {
+        "model": "gemini-2.5-flash-preview-tts",
+        "voice": "Aoede",
+        "audio_tags": False,
+    }
+
+
+def ensure_key() -> None:
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return
+    for line in pathlib.Path("/root/.hermes/.env").read_text().splitlines():
+        if line.startswith(("GEMINI_API_KEY=", "GOOGLE_API_KEY=")):
+            os.environ[line.split("=", 1)[0]] = line.split("=", 1)[1].strip()
+            return
+    sys.exit("GEMINI_API_KEY tiada — set dalam /root/.hermes/.env")
 
 
 def main() -> int:
     force = "--force" in sys.argv
+    sys.path.insert(0, str(HERMES))
+    ensure_key()
+    from tools.tts_tool_providers import _generate_gemini_tts  # noqa: E402
+
+    gemini = load_hermes_config()
+    ar_cfg = {k: v for k, v in gemini.items() if k != "persona_prompt_file"}
+
     AUDIO.mkdir(exist_ok=True)
     todo = {k: v for k, v in texts().items() if force or not (AUDIO / f"{k}.mp3").exists()}
     print(f"{len(todo)} klip perlu dijana")
 
-    async def one(sem, key, voice, text):
-        import edge_tts
+    def one(item: tuple[str, tuple[str, str]]) -> str | None:
+        key, (lang, text) = item
+        cfg = ar_cfg if lang == AR else gemini
+        for attempt in range(RETRY_MAX + 1):
+            try:
+                _generate_gemini_tts(text, str(AUDIO / f"{key}.mp3"), cfg)
+                return None
+            except Exception as exc:  # jangan senyap — senarai gagal dibentang
+                msg = str(exc)
+                if attempt == RETRY_MAX:
+                    return f"{key}: {type(exc).__name__} {msg[:200]}"
+                # 429 = tingkap seminit Tier 1; wajib tunggu penuh. Ralat
+                # lain (400 model keluar teks, respon cacat) cuba semula segera.
+                m = re.search(r"retry in ([\d.]+)s", msg)
+                if m:
+                    wait = float(m.group(1)) + 1
+                else:
+                    wait = 65.0 if "429" in msg else 3.0
+                print(f"  {key}: {type(exc).__name__}, cuba semula dalam {wait:.0f}s")
+                time.sleep(wait)
+        return f"{key}: gagal selepas {RETRY_MAX} cubaan"
 
-        async with sem:
-            await edge_tts.Communicate(text, voice).save(str(AUDIO / f"{key}.mp3"))
+    gagal: list[str] = []
+    for i, item in enumerate(todo.items()):
+        g = one(item)
+        if g:
+            gagal.append(g)
+        if i < len(todo) - 1:
+            time.sleep(DELAY)
 
-    async def run():
-        sem = asyncio.Semaphore(WORKERS)
-        await asyncio.gather(*(one(sem, k, v[0], v[1]) for k, v in todo.items()))
+    if gagal:
+        print("GAGAL:")
+        for g in gagal:
+            print("  -", g)
+        return 1
 
-    asyncio.run(run())
-
-    kosong = [k for k in todo if (AUDIO / f"{k}.mp3").stat().st_size < 500]
+    files = list(AUDIO.glob("*.mp3"))
+    kosong = [f.stem for f in files if f.stat().st_size < 2000]
     if kosong:
-        sys.exit(f"Klip kosong/terlalu kecil: {', '.join(kosong)}")
-    total = sum(f.stat().st_size for f in AUDIO.glob("*.mp3"))
-    print(f"OK {len(list(AUDIO.glob('*.mp3')))} klip, {(total / 1024 / 1024):.1f} MB")
+        return sys.exit(f"Klip terlalu kecil (mungkin senyap): {', '.join(kosong)}")
+    total = sum(f.stat().st_size for f in files)
+    print(f"OK {len(files)} klip, {total / 1024 / 1024:.1f} MB")
     return 0
 
 
