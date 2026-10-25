@@ -5423,22 +5423,7 @@ function makeRig() {
     const fallback = new THREE.Group();
     fallback.add(body, head, hair, veil, cape, face, shoulder, armL, armR);
     root.add(fallback);
-    const rig = { root, fallback, avatar: null, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
-    void fetchModel("models/jemaah-v1.glb").then((model) => {
-        if (!model)
-            return; // Existing character stays playable on network/load failure.
-        const avatar = model.clone(true);
-        avatar.traverse((o) => {
-            const m = o;
-            if (m.isMesh) {
-                m.castShadow = true;
-                m.receiveShadow = true;
-            }
-        });
-        avatar.visible = false;
-        rig.avatar = avatar;
-        root.add(avatar);
-    });
+    const rig = { root, fallback, avatar: null, character: null, characterRequest: "", body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
     return rig;
 }
 function updateRig(dt) {
@@ -5450,6 +5435,7 @@ function updateRig(dt) {
     const target = Math.atan2(P.dx, P.dy);
     r.root.rotation.y += wrapPi(target - r.root.rotation.y) * Math.min(1, dt * 14);
     const fem = P.gender === "P";
+    requestPilgrim(r);
     const key = [P.gender, P.ihram, P.shaved, P.outfit, P.acc].join();
     if (key !== r.key) {
         r.key = key;
@@ -5487,35 +5473,14 @@ function updateRig(dt) {
     }
     r.armL.rotation.x += (la - r.armL.rotation.x) * Math.min(1, dt * 12);
     r.armR.rotation.x += (ra - r.armR.rotation.x) * Math.min(1, dt * 12);
-    const detailed = !!r.avatar && !fem && P.ihram;
+    const detailed = !!r.character && r.character.id === pilgrimId();
     r.fallback.visible = !detailed;
     r.fallback.rotation.set(0, 0, 0);
     r.fallback.scale.set(1, 1, 1);
-    if (r.avatar) {
+    if (r.avatar)
         r.avatar.visible = detailed;
-        const av = r.avatar;
-        const h = av.getObjectByName("Hair");
-        if (h)
-            h.visible = !P.shaved;
-        const l = av.getObjectByName("ArmL"), rr = av.getObjectByName("ArmR");
-        if (l)
-            l.rotation.x = r.armL.rotation.x;
-        if (rr)
-            rr.rotation.x = r.armR.rotation.x;
-        const ll = av.getObjectByName("LegL"), rl = av.getObjectByName("LegR");
-        if (ll)
-            ll.rotation.x = P.moving ? -la * 0.48 : 0;
-        if (rl)
-            rl.rotation.x = P.moving ? la * 0.48 : 0;
-        const up = av.getObjectByName("UpperBody");
-        if (up) {
-            up.rotation.x = 0;
-            up.position.y = 1.02;
-        }
-        av.scale.set(1, 1, 1);
-        av.position.y = 0;
-        applyMiqatPose3D(r, up, l, rr);
-    }
+    if (detailed)
+        updatePilgrim(r, dt);
     if (!detailed)
         applyMiqatFallbackPose3D(r);
 }
@@ -6589,62 +6554,6 @@ function addMiqatWater(g) {
     }
     g.add(water);
 }
-function applyMiqatPose3D(r, up, l, rr) {
-    const av = r.avatar;
-    if (!av)
-        return;
-    const pose = miqatPrayerPose();
-    for (const side of ["L", "R"]) {
-        const leg = av.getObjectByName("Leg" + side);
-        if (leg)
-            leg.position.y = .77;
-        for (const name of ["Sandal", "SandalStrap"]) {
-            const shoe = av.getObjectByName("Leg" + side + "_" + name);
-            if (shoe)
-                shoe.visible = insideMiqat !== "mosque";
-        }
-    }
-    for (const name of ["PilgrimAvatar_Ihram", "PilgrimAvatar_ClothSeam"]) {
-        const cloth = av.getObjectByName(name);
-        if (cloth)
-            cloth.scale.y = 1;
-    }
-    const head = av.getObjectByName("HeadPivot");
-    if (head)
-        head.rotation.y = pose === "salam" ? Math.sin((miqatActivity?.stageTime ?? 0) * 2) * .5 : 0;
-    if (!pose) {
-        if (miqatActivity?.kind === "nails" || miqatActivity?.kind === "wudu") {
-            if (l)
-                l.rotation.x = -1.5 + Math.sin(miqatActivity.elapsed * 4) * .12;
-            if (rr)
-                rr.rotation.x = -1.3 - Math.sin(miqatActivity.elapsed * 4) * .12;
-        }
-        return;
-    }
-    r.root.position.y = 0;
-    if (l)
-        l.rotation.x = pose === "takbir" ? -2.6 : pose === "fold" ? -1.1 : pose === "bow" ? -.2 : pose === "sujud" ? -.55 : -1;
-    if (rr)
-        rr.rotation.x = l?.rotation.x ?? 0;
-    if (up)
-        up.rotation.x = pose === "bow" ? 1.25 : pose === "sujud" ? 1.65 : 0;
-    if (pose === "sit" || pose === "sujud" || pose === "salam") {
-        if (up)
-            up.position.y = pose === "sujud" ? .26 : .48;
-        for (const name of ["PilgrimAvatar_Ihram", "PilgrimAvatar_ClothSeam"]) {
-            const cloth = av.getObjectByName(name);
-            if (cloth)
-                cloth.scale.y = .5;
-        }
-        for (const side of ["L", "R"]) {
-            const leg = av.getObjectByName("Leg" + side);
-            if (leg) {
-                leg.position.y = .32;
-                leg.rotation.x = 1.3;
-            }
-        }
-    }
-}
 function applyMiqatFallbackPose3D(r) {
     const pose = miqatPrayerPose();
     if (!pose)
@@ -6686,6 +6595,116 @@ function drawMiqatPrayer2D(c, p) {
     c.fill();
     c.restore();
     return true;
+}
+
+const pilgrimCache = new Map();
+function pilgrimId() {
+    return P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+}
+async function fetchPilgrim(id) {
+    let pending = pilgrimCache.get(id);
+    if (!pending) {
+        pending = loadGltfLib().then(ok => new Promise(resolve => {
+            if (!ok)
+                return resolve(null);
+            const loader = new THREE.GLTFLoader();
+            loader.load("models/" + id + ".glb", gl => {
+                if (!gl.animations.length)
+                    return resolve(null);
+                const mixer = new THREE.AnimationMixer(gl.scene);
+                const actions = {};
+                for (const clip of gl.animations)
+                    actions[clip.name] = mixer.clipAction(clip);
+                gl.scene.traverse(o => {
+                    const m = o;
+                    if (m.isMesh) {
+                        m.castShadow = true;
+                        m.receiveShadow = true;
+                        m.frustumCulled = false;
+                    }
+                });
+                resolve({ id, scene: gl.scene, mixer, actions, current: "", appearance: "" });
+            }, undefined, err => { console.warn("Character gagal dimuat", id, err); resolve(null); });
+        }));
+        pilgrimCache.set(id, pending);
+    }
+    return pending;
+}
+function attachPilgrim(r, character) {
+    if (r.avatar)
+        r.root.remove(r.avatar);
+    r.character = character;
+    r.avatar = character.scene;
+    character.appearance = "";
+    character.mixer.stopAllAction();
+    character.current = "";
+    r.root.add(character.scene);
+}
+function requestPilgrim(r) {
+    const id = pilgrimId();
+    if (r.characterRequest === id)
+        return;
+    r.characterRequest = id;
+    void fetchPilgrim(id).then(character => {
+        // An outfit/sex change may finish loading before an earlier request.
+        if (r.characterRequest !== id || !character)
+            return;
+        attachPilgrim(r, character);
+    });
+}
+function pilgrimClip() {
+    const prayer = miqatPrayerPose();
+    if (prayer)
+        return ({ stand: "Idle", takbir: "Takbir", fold: "Bersedekap", bow: "Rukuk", sit: "Duduk", sujud: "Sujud", salam: "Salam" })[prayer];
+    if (miqatActivity?.kind === "nails" || miqatActivity?.kind === "wudu")
+        return "Groom";
+    if (P.pose === "sleep")
+        return "Sleep";
+    if (P.pose === "sit")
+        return "Duduk";
+    if (P.pose === "throw")
+        return "Throw";
+    if (P.pose === "pray")
+        return "Takbir";
+    return P.moving ? "Walk" : "Idle";
+}
+function updatePilgrim(r, dt) {
+    const c = r.character;
+    if (!c)
+        return;
+    r.root.position.y = 0; // vertical motion is authored in the armature.
+    const appearance = [P.skin, P.outfit, P.acc, P.ihram, P.shaved, insideMiqat].join();
+    if (appearance !== c.appearance) {
+        c.appearance = appearance;
+        c.scene.traverse(o => {
+            if (o.name.startsWith("Hair_"))
+                o.visible = !P.shaved;
+            if (o.name.startsWith("Footwear_"))
+                o.visible = insideMiqat !== "mosque";
+            const m = o;
+            if (!m.isMesh)
+                return;
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            for (const material of mats) {
+                const mt = material;
+                if (mt.name.startsWith("Skin"))
+                    mt.color.set(P.skin);
+                if (mt.name.startsWith("Outfit"))
+                    mt.color.set(P.outfit);
+                if (mt.name.startsWith("Scarf"))
+                    mt.color.set(P.acc);
+            }
+        });
+    }
+    const clip = pilgrimClip();
+    if (clip !== c.current && c.actions[clip]) {
+        if (c.current)
+            c.actions[c.current].fadeOut(.18);
+        const action = c.actions[clip];
+        action.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(.18).play();
+        c.current = clip;
+    }
+    c.mixer.update(Math.min(dt, .1));
 }
 
 // =====================================================================

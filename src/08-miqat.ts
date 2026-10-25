@@ -255,43 +255,6 @@ function addMiqatWater(g: THREE.Group): void {
   }
   g.add(water);
 }
-function applyMiqatPose3D(r: PlayerRig, up?: THREE.Object3D, l?: THREE.Object3D, rr?: THREE.Object3D): void {
-  const av = r.avatar; if (!av) return;
-  const pose = miqatPrayerPose();
-  for (const side of ["L","R"]) {
-    const leg = av.getObjectByName("Leg"+side);
-    if (leg) leg.position.y = .77;
-    for (const name of ["Sandal","SandalStrap"]) {
-      const shoe = av.getObjectByName("Leg"+side+"_"+name);
-      if (shoe) shoe.visible = insideMiqat !== "mosque";
-    }
-  }
-  for (const name of ["PilgrimAvatar_Ihram","PilgrimAvatar_ClothSeam"]) {
-    const cloth = av.getObjectByName(name); if (cloth) cloth.scale.y = 1;
-  }
-  const head = av.getObjectByName("HeadPivot"); if (head) head.rotation.y = pose === "salam" ? Math.sin((miqatActivity?.stageTime ?? 0)*2)*.5 : 0;
-  if (!pose) {
-    if (miqatActivity?.kind === "nails" || miqatActivity?.kind === "wudu") {
-      if (l) l.rotation.x = -1.5 + Math.sin(miqatActivity.elapsed * 4) * .12;
-      if (rr) rr.rotation.x = -1.3 - Math.sin(miqatActivity.elapsed * 4) * .12;
-    }
-    return;
-  }
-  r.root.position.y = 0;
-  if (l) l.rotation.x = pose === "takbir" ? -2.6 : pose === "fold" ? -1.1 : pose === "bow" ? -.2 : pose === "sujud" ? -.55 : -1;
-  if (rr) rr.rotation.x = l?.rotation.x ?? 0;
-  if (up) up.rotation.x = pose === "bow" ? 1.25 : pose === "sujud" ? 1.65 : 0;
-  if (pose === "sit" || pose === "sujud" || pose === "salam") {
-    if (up) up.position.y = pose === "sujud" ? .26 : .48;
-    for (const name of ["PilgrimAvatar_Ihram","PilgrimAvatar_ClothSeam"]) {
-      const cloth = av.getObjectByName(name); if (cloth) cloth.scale.y = .5;
-    }
-    for (const side of ["L","R"]) {
-      const leg = av.getObjectByName("Leg"+side);
-      if (leg) { leg.position.y=.32; leg.rotation.x=1.3; }
-    }
-  }
-}
 function applyMiqatFallbackPose3D(r: PlayerRig): void {
   const pose = miqatPrayerPose();
   if (!pose) return;

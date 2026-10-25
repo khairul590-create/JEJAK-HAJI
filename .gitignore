@@ -3,3 +3,11 @@ build/
 dist/artifact.html
 package-lock.json
 .DS_Store
+
+# Reproducible Blender working files (release sources are in characters-blender.zip)
+models/*.blend
+models/*.blend1
+models/lelaki-*-*.png
+models/perempuan-*-*.png
+models/jemaah-v1.glb
+models/jemaah-v1-preview.png

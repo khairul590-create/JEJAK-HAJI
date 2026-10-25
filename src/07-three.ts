@@ -34,6 +34,8 @@ interface PlayerRig {
   root: THREE.Group;
   fallback: THREE.Group;
   avatar: THREE.Group | null;
+  character: AnimatedPilgrim | null;
+  characterRequest: string;
   body: THREE.Mesh;
   head: THREE.Mesh;
   hair: THREE.Mesh;
@@ -971,18 +973,7 @@ function makeRig(): PlayerRig {
   const fallback = new THREE.Group();
   fallback.add(body, head, hair, veil, cape, face, shoulder, armL, armR);
   root.add(fallback);
-  const rig: PlayerRig = { root, fallback, avatar: null, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
-  void fetchModel("models/jemaah-v1.glb").then((model) => {
-    if (!model) return; // Existing character stays playable on network/load failure.
-    const avatar = model.clone(true);
-    avatar.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
-    });
-    avatar.visible = false;
-    rig.avatar = avatar;
-    root.add(avatar);
-  });
+  const rig: PlayerRig = { root, fallback, avatar: null, character: null, characterRequest: "", body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
   return rig;
 }
 function updateRig(dt: number): void {
@@ -993,6 +984,7 @@ function updateRig(dt: number): void {
   const target = Math.atan2(P.dx, P.dy);
   r.root.rotation.y += wrapPi(target - r.root.rotation.y) * Math.min(1, dt * 14);
   const fem = P.gender === "P";
+  requestPilgrim(r);
   const key = [P.gender, P.ihram, P.shaved, P.outfit, P.acc].join();
   if (key !== r.key) {
     r.key = key;
@@ -1027,27 +1019,13 @@ function updateRig(dt: number): void {
   }
   r.armL.rotation.x += (la - r.armL.rotation.x) * Math.min(1, dt * 12);
   r.armR.rotation.x += (ra - r.armR.rotation.x) * Math.min(1, dt * 12);
-  const detailed = !!r.avatar && !fem && P.ihram;
+  const detailed = !!r.character && r.character.id === pilgrimId();
   r.fallback.visible = !detailed;
   r.fallback.rotation.set(0, 0, 0);
   r.fallback.scale.set(1, 1, 1);
-  if (r.avatar) {
-    r.avatar.visible = detailed;
-    const av = r.avatar;
-    const h = av.getObjectByName("Hair");
-    if (h) h.visible = !P.shaved;
-    const l = av.getObjectByName("ArmL"), rr = av.getObjectByName("ArmR");
-    if (l) l.rotation.x = r.armL.rotation.x;
-    if (rr) rr.rotation.x = r.armR.rotation.x;
-    const ll = av.getObjectByName("LegL"), rl = av.getObjectByName("LegR");
-    if (ll) ll.rotation.x = P.moving ? -la * 0.48 : 0;
-    if (rl) rl.rotation.x = P.moving ? la * 0.48 : 0;
-    const up = av.getObjectByName("UpperBody");
-    if (up) { up.rotation.x = 0; up.position.y = 1.02; }
-    av.scale.set(1, 1, 1);
-    av.position.y = 0;
-    applyMiqatPose3D(r, up, l, rr);
-  }
+  if (r.avatar) r.avatar.visible = detailed;
+  if (detailed) updatePilgrim(r, dt);
+
   if (!detailed) applyMiqatFallbackPose3D(r);
 }
 
@@ -1238,7 +1216,7 @@ function addM3(g: THREE.Group, d: M3, lamps: THREE.Vector3[], seed: number): voi
 //  Model .glb luaran (Blender) — lihat docs/BLENDER.md
 // ---------------------------------------------------------------------
 interface GltfLoaderLike {
-  load(url: string, ok: (g: { scene: THREE.Group }) => void, prog?: unknown, err?: (e: unknown) => void): void;
+  load(url: string, ok: (g: { scene: THREE.Group; animations: THREE.AnimationClip[] }) => void, prog?: unknown, err?: (e: unknown) => void): void;
 }
 let gltfReady: Promise<boolean> | null = null;
 const gltfCache = new Map<string, Promise<THREE.Group | null>>();

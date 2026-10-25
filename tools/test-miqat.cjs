@@ -22,10 +22,11 @@ code = code.replace(/\}\)\(\);\s*$/, `window.testApi={
   get S(){return S},get activity(){return miqatActivity},get room(){return insideMiqat},
   get scene(){return scene},get target(){return stepTarget()},get pose(){return miqatPrayerPose()},
   P,R3,C3,enterMiqatInterior,leaveMiqatInterior,startMiqatActivity,updateMiqatActivity,
-  resetMiqatActivity,miqatPrivate,applyMiqatPose3D,makeRig,updateRig,loadScene,PRAYER_SEQUENCE,
+  resetMiqatActivity,miqatPrivate,makeRig,updateRig,loadScene,PRAYER_SEQUENCE,
   finishMiqatActivity,validate:validSave,setStep(id){S.step=ALL_STEPS.findIndex(x=>x.step.id===id)},
   current:()=>curStep()?.id,ensureWorld,updatePlayer
-  ,rig(model){gltfCache.set('models/jemaah-v1.glb',Promise.resolve(null));R3.rig=makeRig();R3.rig.avatar=model;R3.rig.root.add(model);return R3.rig;}
+  ,attachPilgrim,pilgrimClip,pilgrimCache,pilgrimId
+
 };})();`);
 w.eval(code);
 const a = w.testApi;
@@ -70,25 +71,63 @@ for(const room of ['wash','mosque']) {
 // Parse the actual exported GLB with the SAME GLTFLoader version as production.
 w.TextDecoder = TextDecoder; w.TextEncoder = TextEncoder;
 w.eval(fs.readFileSync('node_modules/three/examples/js/loaders/GLTFLoader.js','utf8'));
-const data = fs.readFileSync('models/jemaah-v1.glb');
-new THREE.GLTFLoader().parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'',gl=>{
-  for(const name of ['UpperBody','ArmL','ArmR','LegL','LegR','Hair','HeadPivot']) assert.ok(gl.scene.getObjectByName(name),name);
-  const box=new THREE.Box3().setFromObject(gl.scene); const size=box.getSize(new THREE.Vector3());
-  assert.ok(size.y>1.8 && size.y<2.1,'Avatar must be human scale');
-  assert.ok(Math.abs(box.min.y)<.03,'Feet must meet floor');
-  let triangles=0,drawCalls=0;
-  gl.scene.traverse(o=>{if(o.isMesh){triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;drawCalls++;}});
-  assert.ok(triangles<25000); assert.ok(data.length<1024*1024);
-  a.setup(); a.P.ihram=true;
-  const rig=a.rig(gl.scene); a.updateRig(.016);
-  assert.equal(rig.avatar.visible,true); assert.equal(rig.fallback.visible,false);
-  a.P.gender='P'; a.updateRig(.016); assert.equal(rig.avatar.visible,false); assert.equal(rig.fallback.visible,true);
-  a.P.gender='L'; a.P.shaved=true; a.updateRig(.016); assert.equal(rig.avatar.getObjectByName('Hair').visible,false);
-  a.C3.mode='eye'; a.updateRig(.016); assert.equal(rig.root.visible,false);
-  a.C3.mode='back'; a.P.ihram=false; a.updateRig(.016); assert.equal(rig.fallback.visible,true);
-  a.P.ihram=true; a.setStep('solat_ihram'); a.S.flags.miqat_wudu=true; a.enterMiqatInterior('mosque');
-  a.startMiqatActivity('prayer');
-  for(let i=0;i<a.PRAYER_SEQUENCE.length;i++) { a.updateMiqatActivity(1.3); a.updateRig(.016); rig.root.updateMatrixWorld(true); assert.ok(Number.isFinite(new THREE.Box3().setFromObject(rig.root).max.y)); w.document.getElementById('miqatNext').click(); }
-  console.log(JSON.stringify({result:'PASS',tests:'preparation, cancellation, wudu invalidation, two rakaat, female/old saves, room exits, collisions, GLB r128 compatibility',triangles,drawCalls,bytes:data.length,height:size.y}));
-  dom.window.close();
-},err=>{console.error(err);process.exitCode=1;dom.window.close();});
+async function checkCharacters() {
+  const report=[];
+  for(const [id,gender,ihram] of [['lelaki-ihram','L',true],['perempuan-telekung','P',true],['lelaki-biasa','L',false],['perempuan-biasa','P',false]]) {
+    const data=fs.readFileSync('models/'+id+'.glb');
+    const gl=await new Promise((resolve,reject)=>new THREE.GLTFLoader().parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'',resolve,reject));
+    const expected=['Idle','Walk','Takbir','Bersedekap','Rukuk','Duduk','Sujud','Salam','Groom','Throw','Sleep'];
+    assert.equal(gl.animations.map(x=>x.name).sort().join(','),expected.sort().join(','));
+    const mixer=new THREE.AnimationMixer(gl.scene),actions={};
+    for(const clip of gl.animations) actions[clip.name]=mixer.clipAction(clip);
+    let triangles=0,skins=0;
+    gl.scene.traverse(o=>{if(o.isSkinnedMesh){skins++;triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;assert.equal(o.skeleton.bones.length,18);}});
+    assert.ok(skins>0);assert.ok(triangles<35000);assert.ok(data.length<1.5*1024*1024);
+    function bounds(){
+      gl.scene.updateMatrixWorld(true);
+      const box=new THREE.Box3();
+      gl.scene.traverse(o=>{if(o.isSkinnedMesh){o.skeleton.update();for(let i=0;i<o.geometry.attributes.position.count;i++){
+        const v=new THREE.Vector3().fromBufferAttribute(o.geometry.attributes.position,i);o.boneTransform(i,v);v.applyMatrix4(o.matrixWorld);box.expandByPoint(v);
+      }}});return box;
+    }
+    actions.Idle.play();mixer.update(.25);
+    const standing=bounds();assert.ok(standing.max.y>1.7&&standing.max.y<1.95);assert.ok(Math.abs(standing.min.y)<.05);
+    mixer.stopAllAction();actions.Walk.reset().play();mixer.update(.15);
+    const shin=gl.scene.getObjectByName('ShinL');const first=shin.getWorldPosition(new THREE.Vector3());mixer.update(.5);bounds();
+    assert.ok(first.distanceTo(shin.getWorldPosition(new THREE.Vector3()))>.05,'Walking must move the knee');
+    for(const name of ['Rukuk','Duduk','Sujud']){
+      mixer.stopAllAction();actions[name].reset().play();mixer.update(.1);
+      const box=bounds();assert.ok(box.max.y<1.3,name+' must lower body');assert.ok(box.min.y>-.12,name+' floor penetration');
+      if(name==='Sujud') {
+        const head=gl.scene.getObjectByName('Head').getWorldPosition(new THREE.Vector3());
+        assert.ok(head.y<.3,'Head must reach ground for sujud');
+        for(const side of ['L','R'])assert.ok(gl.scene.getObjectByName('Hand'+side).getWorldPosition(new THREE.Vector3()).y<.15,'Hands near floor');
+      }
+    }
+    mixer.stopAllAction();
+    a.setup(gender);a.P.gender=gender;a.P.ihram=ihram;
+    const character={id,scene:gl.scene,mixer,actions,current:'',appearance:''};
+    a.pilgrimCache.set(id,Promise.resolve(character));
+    const rig=a.makeRig();a.R3.rig=rig;rig.characterRequest=id;a.attachPilgrim(rig,character);a.updateRig(.1);
+    assert.equal(rig.avatar.visible,true);assert.equal(rig.fallback.visible,false);
+    a.P.moving=true;a.updateRig(.1);assert.equal(character.current,'Walk');
+    a.P.moving=false;a.updateRig(.1);assert.equal(character.current,'Idle');
+    a.P.shaved=true;a.updateRig(.1);gl.scene.traverse(o=>{if(o.name.startsWith('Hair_'))assert.equal(o.visible,false)});
+    a.C3.mode='eye';a.updateRig(.1);assert.equal(rig.root.visible,false);a.C3.mode='back';
+    a.setStep('solat_ihram');a.S.flags.miqat_wudu=true;a.enterMiqatInterior('mosque');a.startMiqatActivity('prayer');
+    for(let i=0;i<a.PRAYER_SEQUENCE.length;i++){
+      a.updateMiqatActivity(1.3);a.updateRig(.1);
+      assert.equal(character.current,a.pilgrimClip());
+      gl.scene.traverse(o=>{if(o.name.startsWith('Footwear_'))assert.equal(o.visible,false)});
+      assert.ok(Number.isFinite(bounds().max.y));w.document.getElementById('miqatNext').click();
+    }
+    a.leaveMiqatInterior();a.updateRig(.1);
+    gl.scene.traverse(o=>{if(o.name.startsWith('Footwear_'))assert.equal(o.visible,true)});
+    // Pending/failed new variant must show the playable fallback, never wrong clothing.
+    a.P.ihram=!ihram;rig.characterRequest=a.pilgrimId();a.updateRig(.1);
+    assert.equal(rig.fallback.visible,true);assert.equal(rig.avatar.visible,false);
+    report.push({id,triangles,skins,bytes:data.length,clips:gl.animations.length});
+  }
+  console.log(JSON.stringify({result:'PASS',tests:'Miqat workflow, four skinned GLBs in r128, joint motion, prayer ground bounds, runtime clips, outfit fallback, privacy and footwear',characters:report}));
+}
+checkCharacters().catch(err=>{console.error(err);process.exitCode=1}).finally(()=>dom.window.close());

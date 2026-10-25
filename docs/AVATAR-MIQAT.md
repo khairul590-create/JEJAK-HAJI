@@ -1,3 +1,5 @@
+> Kemas kini character: model berangka lelaki/perempuan kini diterangkan dalam [CHARACTERS.md](CHARACTERS.md). Butiran avatar v1 di bawah ialah rekod versi terdahulu; aliran Miqat masih digunakan.
+
 # Avatar Blender dan ruang dalaman Miqat
 
 ## Apa yang berubah
