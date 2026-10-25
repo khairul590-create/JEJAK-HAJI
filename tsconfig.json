@@ -19,6 +19,7 @@
     "src/04-steps.ts",
     "src/05-ui.ts",
     "src/06-game.ts",
-    "src/07-three.ts"
+    "src/07-three.ts",
+    "src/08-miqat.ts"
   ]
 }
