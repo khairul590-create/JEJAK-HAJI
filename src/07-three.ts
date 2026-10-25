@@ -1490,9 +1490,10 @@ async function setGyro(on: boolean, quiet = false): Promise<boolean> {
 //  Kemas kini & lukis setiap bingkai
 // ---------------------------------------------------------------------
 function update3D(dt: number): void {
-  if (!R3.active || !R3.camera || !R3.world) return;
-  ensureWorld();
+  if (!R3.active || !R3.camera) return;
+  ensureWorld(); // loadScene/bilik Miqat buang dunia lama; bina semula di sini
   const w = R3.world;
+  if (!w) return;
   const cam = R3.camera;
   applyLight3D(currentLight());
   // kamera

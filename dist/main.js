@@ -5398,10 +5398,12 @@ async function setGyro(on, quiet = false) {
 //  Kemas kini & lukis setiap bingkai
 // ---------------------------------------------------------------------
 function update3D(dt) {
-    if (!R3.active || !R3.camera || !R3.world)
+    if (!R3.active || !R3.camera)
         return;
-    ensureWorld();
+    ensureWorld(); // loadScene/bilik Miqat buang dunia lama; bina semula di sini
     const w = R3.world;
+    if (!w)
+        return;
     const cam = R3.camera;
     applyLight3D(currentLight());
     // kamera
