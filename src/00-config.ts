@@ -13,6 +13,14 @@ const CONFIG = {
   settingsKey: "jejakHaji.settings.v1",
   walkSpeed: 112,
   runSpeed: 178,
+  // Tenaga jemaah (0–100) dan botol air. Kadar dalam unit sesaat.
+  tenaga: {
+    jalan: 0.22, // berkurang semasa berjalan
+    laju: 0.9, // berkurang semasa berlari-lari anak
+    rehat: 3, // bertambah semasa berdiri diam
+    teguk: 25, // tambahan tenaga bagi setiap teguk air
+    botol: 4, // bilangan teguk dalam botol penuh
+  },
 };
 
 // ---------------------------------------------------------------------
@@ -237,7 +245,69 @@ const READ: Record<string, Reading> = {
     html: `<p><b>Tawaf wada'</b> (tawaf selamat tinggal) hukumnya wajib dalam mazhab Syafie bagi jemaah yang hendak meninggalkan Makkah. Ia dilakukan sebagai urusan terakhir sebelum berangkat.</p>
 <p>Wanita yang haid atau nifas dikecualikan dan tidak dikenakan dam. Tawaf wada' tidak diikuti dengan saie.</p>`,
   },
+  // --- Panduan tambahan (dibuka dari Panduan bermain) ---
+  kesilapan: {
+    kicker: "Panduan jemaah",
+    title: "Kesilapan lazim yang perlu dielakkan",
+    html: `<p>Kesilapan berikut sering berlaku dan boleh menjejaskan sahnya ibadah atau mewajibkan dam. Semak dengan pembimbing ibadah jika ragu-ragu.</p>
+<ul><li><b>Melepasi miqat tanpa berniat ihram.</b> Jemaah wajib kembali ke miqat untuk berniat, atau dikenakan dam.</li>
+<li><b>Memulakan tawaf bukan dari Hajarul Aswad.</b> Pusingan yang tidak bermula dari garisan Hajarul Aswad tidak dikira.</li>
+<li><b>Masuk ke dalam Hijir Ismail ketika tawaf.</b> Hijir Ismail sebahagian daripada Kaabah, jadi pusingan itu tidak sah dan perlu diulang.</li>
+<li><b>Kaabah tidak di sebelah kiri.</b> Berjalan sambil menghadap atau membelakangi Kaabah menjadikan bahagian tawaf itu tidak sah.</li>
+<li><b>Bertawaf dalam keadaan berhadas.</b> Jika wuduk terbatal, berhenti, berwuduk semula, kemudian sambung tawaf.</li>
+<li><b>Memulakan saie dari Bukit Marwah.</b> Saie mesti bermula di Safa dan berakhir di Marwah.</li>
+<li><b>Berwukuf di luar sempadan Arafah</b>, contohnya di Wadi Uranah. Wukuf di luar sempadan tidak sah. Perhatikan papan tanda sempadan.</li>
+<li><b>Batu tidak masuk ke dalam takungan jamrah</b>, atau tujuh biji dilontar sekali gus (dikira satu lontaran sahaja). Lontar satu demi satu.</li>
+<li><b>Melontar pada hari Tasyrik sebelum gelincir matahari</b>, atau tidak mengikut tertib Ula → Wusta → Aqabah.</li>
+<li><b>Melanggar larangan ihram tanpa sedar</b>, seperti memakai wangian, mencabut rambut atau memotong kuku.</li></ul>
+<p class="muted">Simulasi ini menegur kesilapan tawaf, saie, wukuf dan melontar semasa kamu bermain.</p>`,
+  },
+  sesat: {
+    kicker: "Panduan jemaah",
+    title: "Jika terpisah daripada rombongan",
+    html: `<p>Berjuta-juta jemaah berada di tempat yang sama, jadi terpisah daripada rombongan perkara biasa. Bersedialah sebelum ia berlaku.</p>
+<p><b>Sebelum keluar:</b></p>
+<ul><li>Sentiasa pakai gelang dan kad pengenalan jemaah, dan simpan alamat hotel serta nombor maktab.</li>
+<li>Simpan nombor telefon ketua rombongan dan pegawai Tabung Haji. Pastikan telefon dicas penuh.</li>
+<li>Tetapkan tempat berkumpul sebelum masuk Masjidil Haram, contohnya nombor pintu tertentu.</li>
+<li>Di Mina dan Arafah, hafal nombor maktab, nombor lorong dan papan tanda berhampiran khemah.</li></ul>
+<p><b>Jika terpisah:</b></p>
+<ul><li>Bertenang. Berhenti di tempat yang selamat dan tidak sesak.</li>
+<li>Hubungi ketua rombongan, atau pergi ke tempat berkumpul yang telah dijanjikan.</li>
+<li>Minta bantuan petugas haji, polis atau pusat bantuan jemaah sesat. Tunjukkan kad atau gelang pengenalan kamu.</li>
+<li>Jangan mengikut orang yang tidak dikenali ke tempat lain.</li></ul>`,
+  },
+  kesihatan: {
+    kicker: "Panduan jemaah",
+    title: "Jaga tenaga & kesihatan",
+    html: `<p>Cuaca di Makkah, Mina dan Arafah sangat panas. Banyak ibadah haji dilakukan dengan berjalan kaki, jadi tenaga perlu dijaga untuk ibadah wajib.</p>
+<ul><li><b>Minum air dengan kerap</b> walaupun tidak haus. Bawa botol air dan isi semula, contohnya di tong air Zamzam.</li>
+<li><b>Berteduh.</b> Gunakan payung, elakkan berjalan jauh di tengah hari, dan berehat di dalam khemah.</li>
+<li><b>Jangan memaksa diri.</b> Berlari-lari anak (ramal dan di lampu hijau) hukumnya sunat. Simpan tenaga untuk wukuf, melontar dan tawaf.</li>
+<li><b>Kenali tanda strok haba:</b> pening, keliru, kulit panas dan kering, atau berhenti berpeluh. Segera bawa pesakit ke tempat teduh, sejukkan badannya dan dapatkan rawatan.</li>
+<li>Pakai kasut atau selipar yang selesa. Bawa ubat harian dan ikut nasihat doktor jika menghidap penyakit kronik.</li></ul>
+<p class="fact"><b>Dalam game ini:</b> meter <b>tenaga</b> berkurang apabila kamu berjalan, lebih cepat semasa berlari dan di tempat panas pada waktu siang. Berdiri diam untuk berehat, atau tekan <b>Minum</b> (kekunci F) untuk meneguk air. Botol diisi semula di tong Zamzam dan di dalam bas. Ciri ini boleh dimatikan dalam Tetapan.</p>`,
+  },
 };
+
+// ---------------------------------------------------------------------
+//  MODEL 3D LUARAN (.glb daripada Blender) — lihat docs/BLENDER.md
+//  Letak fail dalam folder models/ dan senaraikan di sini. Jika fail gagal
+//  dimuat (contohnya dibuka terus dari komputer), model asas kekal.
+//  Kedudukan x, y dalam piksel dunia 2D (sama seperti m3()). 1 m Blender = 10 px.
+// ---------------------------------------------------------------------
+interface Model3D {
+  scene: SceneId;
+  file: string; // laluan relatif, contohnya "models/kaabah.glb"
+  x: number;
+  y: number;
+  rot?: number; // putaran (darjah) mengelilingi paksi menegak
+  scale?: number; // skala seragam (lalai 1)
+  replace?: M3["k"]; // sembunyikan model asas jenis ini, contohnya "kaabah"
+}
+const MODELS3D: Model3D[] = [
+  // Contoh: { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },
+];
 
 // ---------------------------------------------------------------------
 //  KUIZ
@@ -466,6 +536,12 @@ const REFS: Ref[] = [
   { t: "Jabal ar Rahmah", src: "PeakVisor", url: "https://peakvisor.com/peak/jabal-ar-rahmah.html", use: "Ketinggian ±70 m dari dataran" },
   { t: "Muzdalifah Holy Site", src: "Saudipedia", url: "https://saudipedia.com/en/muzdalifah-holy-site", use: "Keluasan, Lembah Muhassir, Masjid al-Masy'aril Haram" },
   { t: "Miqat Dhu al-Hulayfah", src: "Saudipedia", url: "https://saudipedia.com/en/miqat-dhu-al-hulayfah", use: "Jarak dari Madinah dan Makkah, menara 62 m" },
+  { t: "Hajj simulator Labbaik VR helps Muslims prepare for the holy pilgrimage", src: "Rest of World", url: "https://restofworld.org/2024/divinity-altered-reality-pilgrimage-simulator/", use: "Idea ciri: panduan jika terpisah daripada rombongan" },
+  { t: "HAJSIM: Hajj simulator", src: "Universiti Teknologi Malaysia", url: "https://icc.utm.my/project/hajsim/", use: "Idea ciri: pemantauan kecergasan (meter tenaga & air)" },
+  { t: "The Free Hajj: Virtual Reality in Manasik Hajj Training Education", src: "ResearchGate", url: "https://www.researchgate.net/publication/352080446_The_Free_Hajj_Virtual_Reality_in_Manasik_Hajj_Training_Education", use: "Idea ciri: narasi audio (pemandu suara)" },
+  { t: "iHaji VR Simulasi", src: "Penerbit UTHM", url: "https://penerbit.uthm.edu.my/ojs/index.php/jqsr/article/download/22530/7580/108437", use: "Idea ciri: simulasi rukun & wajib haji secara maya" },
+  { t: "Virtualisasi Masjidil Haram", src: "UHAMKA", url: "https://journal.uhamka.ac.id/index.php/teknoka/article/download/754/298/1431", use: "Idea ciri: giroskop untuk memandang sekeliling" },
+  { t: "Aplikasi VR 3D pelbagai bahasa untuk panduan haji dan umrah (laporan berita)", src: "Bernama", url: "https://www.bernama.com/en/news.php?id=2307098", use: "Idea ciri: panduan kesilapan lazim jemaah" },
 ];
 const REF_NOTE =
   "Simulasi ini ialah alat bantu pembelajaran. Ukuran dalam game dipermudahkan dan tidak mengikut skala sebenar. Untuk amalan sebenar, rujuk pembimbing ibadah dan panduan rasmi Lembaga Tabung Haji. Ayat al-Quran yang dipetik: Al-Baqarah 2:158, 2:196, 2:198 dan 2:201. Hadis yang dipetik: riwayat al-Bukhari, Muslim dan at-Tirmizi.";

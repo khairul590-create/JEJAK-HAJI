@@ -33,6 +33,8 @@ const ICON: Record<string, string> = {
   cam: '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13" r="3.4"/></svg>',
   eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
   link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z" fill="currentColor" stroke="none"/></svg>',
+  speak: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>',
 };
 const ic = (name: string): string => ICON[name] ?? "";
 
@@ -47,8 +49,22 @@ interface Settings {
   sound: boolean;
   view3d: boolean;
   hq: boolean;
+  suara: boolean;
+  tenaga: boolean;
+  gyro: boolean;
 }
-let SET: Settings = { zoom: 1, doa: true, mini: true, arrow: true, sound: true, view3d: false, hq: !window.matchMedia("(pointer: coarse)").matches };
+let SET: Settings = {
+  zoom: 1,
+  doa: true,
+  mini: true,
+  arrow: true,
+  sound: true,
+  view3d: false,
+  hq: !window.matchMedia("(pointer: coarse)").matches,
+  suara: true,
+  tenaga: true,
+  gyro: false,
+};
 function loadSettings(): void {
   const s = loadJSON<Partial<Settings>>(CONFIG.settingsKey);
   if (s) SET = { ...SET, ...s };
@@ -56,6 +72,52 @@ function loadSettings(): void {
 }
 function saveSettings(): void {
   saveJSON(CONFIG.settingsKey, SET);
+}
+
+// ---------------------------------------------------------------------
+//  PEMANDU SUARA (Web Speech API — suara bergantung pada peranti)
+// ---------------------------------------------------------------------
+const VOICE = {
+  ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined",
+  ms: null as SpeechSynthesisVoice | null,
+  ar: null as SpeechSynthesisVoice | null,
+  picked: false,
+};
+function pickVoices(): void {
+  if (!VOICE.ok) return;
+  const vs = window.speechSynthesis.getVoices();
+  if (!vs.length) return;
+  const find = (re: RegExp): SpeechSynthesisVoice | null => vs.find((v) => re.test(v.lang.replace("_", "-"))) ?? null;
+  // Bahasa Melayu; jika tiada, Bahasa Indonesia paling hampir sebutannya
+  VOICE.ms = find(/^ms/i) ?? find(/^id/i);
+  VOICE.ar = find(/^ar/i);
+  VOICE.picked = true;
+}
+if (VOICE.ok) {
+  pickVoices();
+  window.speechSynthesis.addEventListener?.("voiceschanged", pickVoices);
+}
+function speechOn(): boolean {
+  return VOICE.ok && SET.suara && SET.sound;
+}
+function say(text: string, lang: "ms" | "ar" = "ms", flush = false): void {
+  if (!speechOn() || !text) return;
+  if (!VOICE.picked) pickVoices();
+  const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ", "));
+  const v = lang === "ar" ? VOICE.ar : VOICE.ms;
+  if (v) u.voice = v;
+  u.lang = v ? v.lang : lang === "ar" ? "ar-SA" : "ms-MY";
+  u.rate = lang === "ar" ? 0.85 : 1;
+  if (flush) window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+function hush(): void {
+  if (VOICE.ok) window.speechSynthesis.cancel();
+}
+function sayDoa(d: Doa, flush = true): void {
+  if (VOICE.ar) say(d.ar, "ar", flush);
+  else say(d.rumi, "ms", flush);
+  say("Maksudnya: " + d.makna);
 }
 
 // ---------------------------------------------------------------------
@@ -105,7 +167,10 @@ function showDoa(key: string, auto = false): void {
   box.classList.add("in");
   window.clearTimeout(doaTimer);
   doaTimer = window.setTimeout(hideDoa, 11000);
+  curDoa = key;
+  sayDoa(d, false);
 }
+let curDoa = "";
 function hideDoa(): void {
   el("doa").hidden = true;
 }
@@ -376,7 +441,10 @@ function getInput(): Vec {
 
 function typingInField(): boolean {
   const a = document.activeElement;
-  return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+  if (!a) return false;
+  if (a.tagName === "TEXTAREA") return true;
+  // kotak semak & gelangsar dalam Tetapan tidak menghalang kekunci Escape
+  return a.tagName === "INPUT" && !["checkbox", "radio", "range", "button"].includes((a as HTMLInputElement).type);
 }
 
 function initInput(): void {
@@ -395,6 +463,7 @@ function initInput(): void {
     if (e.code === "Equal" || e.code === "NumpadAdd") zoomIn();
     if (e.code === "Minus" || e.code === "NumpadSubtract") zoomOut();
     if (e.code === "KeyM") toggleMission();
+    if (e.code === "KeyF" && !e.repeat) actMinum();
     if (e.code === "KeyC") cycleCam();
     if (e.code === "KeyV") void set3D(!R3.active);
     KEYS.add(e.code);
@@ -517,7 +586,23 @@ function initInput(): void {
     paintAudio();
     if (SET.sound) SND.play("tap");
   });
-  el("doaX").addEventListener("click", hideDoa);
+  el("doaX").addEventListener("click", () => {
+    hideDoa();
+    hush();
+  });
+  el("doaPlay").addEventListener("click", () => {
+    const d = DOA[curDoa];
+    if (!d) return;
+    if (!speechOn()) {
+      toast(VOICE.ok ? "Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa." : "Pelayar ini tidak menyokong pemandu suara.", "info", 4000);
+      return;
+    }
+    sayDoa(d);
+  });
+  el("bMinum").addEventListener("click", () => {
+    SND.init();
+    actMinum();
+  });
   el("modal").addEventListener("click", (e) => {
     if (e.target === el("modal") && modalDismiss) closeModal();
   });
@@ -545,7 +630,7 @@ function paintViewControls(): void {
   cam.innerHTML = ic(C3.mode === "eye" ? "eye" : "cam") + `<span>${CAM_NAMES[C3.mode]}</span>`;
   el("keyhint").textContent = R3.active
     ? "WASD / kayu bedik: jalan · seret skrin: pusing kamera · Q/R: pusing · roda atau + −: zum · C: kamera · E: interaksi"
-    : "WASD / anak panah: jalan · Shift: laju · E / Space: interaksi · roda tetikus atau + −: zum · V: 3D";
+    : "WASD / anak panah: jalan · Shift: laju · E / Space: interaksi · F: minum · roda tetikus atau + −: zum · V: 3D";
 }
 
 function toggleMission(force?: boolean): void {
@@ -577,6 +662,15 @@ function refreshHUD(): void {
   (el("pBar") as HTMLElement).style.width = `${(doneTasks / total) * 100}%`;
   el("cStars").textContent = String(S.stars);
   el("cPebbles").textContent = String(S.pebbles);
+  if (SET.tenaga) {
+    const en = Math.round(S.tenaga);
+    el("cEn").textContent = String(en);
+    el("cAir").textContent = String(S.air);
+    const n = el("bAirN");
+    n.textContent = String(S.air);
+    n.className = "sb-n" + (S.air <= 0 ? " empty" : "");
+    el("chipEn").className = "chip en" + (en < 15 ? " bad" : en < 35 ? " low" : "");
+  }
 
   let date = "Selesai — semoga diterima Allah";
   let title = "Semua tugasan selesai";
@@ -661,7 +755,11 @@ function openGuide(): void {
 <li><b>Zum:</b> butang + dan − di kanan bawah, roda tetikus, cubit dua jari (3D), atau kekunci + dan −.</li>
 <li><b>Paparan 3D:</b> tekan butang 3D di atas. Seret skrin untuk memusing kamera. Butang Kamera menukar pandangan: <i>Belakang</i>, <i>Mata</i> (seperti berjalan sendiri di mataf) dan <i>Atas</i>.</li>
 <li><b>Peta:</b> butang Peta menunjukkan laluan haji dan jaraknya. Ketik peta mini untuk peta lokasi yang lebih besar.</li>
+<li><b>Tenaga & air:</b> meter tenaga di atas berkurang apabila berjalan, terutama semasa panas. Berdiri diam untuk berehat, atau tekan <b>Minum</b> (kekunci F).</li>
+<li><b>Pemandu suara:</b> arahan dan doa dibacakan secara automatik. Tekan butang <b>Dengar</b> pada kad doa untuk mendengar semula. Matikan dalam Tetapan.</li>
 </ul>
+<p class="gsub">Panduan jemaah</p>
+<div class="set-row"><button type="button" class="btn ghost" id="gKes">Kesilapan lazim</button><button type="button" class="btn ghost" id="gSes">Jika terpisah</button><button type="button" class="btn ghost" id="gSih">Tenaga & kesihatan</button></div>
 <p class="muted">Kemajuan disimpan secara automatik dalam pelayar ini.</p>`,
     buttons: [
       { label: "Rujukan", kind: "ghost", onClick: openRefs },
@@ -676,6 +774,9 @@ function openGuide(): void {
       { label: "Tutup", kind: "primary" },
     ],
   });
+  el("gKes").onclick = () => openReading("kesilapan");
+  el("gSes").onclick = () => openReading("sesat");
+  el("gSih").onclick = () => openReading("kesihatan");
 }
 
 function openAch(): void {
@@ -721,6 +822,9 @@ function openSettings(): void {
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
 <label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
+${VOICE.ok ? `<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>` : ""}
+<label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
+${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
 <div class="danger"><button type="button" class="btn ghost" id="setReset">Mula semula dari awal</button>
 <div id="setConfirm" hidden><p>Semua kemajuan, bintang dan pencapaian akan dipadam.</p><button type="button" class="btn bad" id="setYes">Ya, padam dan mula semula</button></div></div>
@@ -756,6 +860,25 @@ function openSettings(): void {
     saveSettings();
     paintAudio();
   };
+  if (VOICE.ok)
+    el<HTMLInputElement>("setSuara").onchange = (e) => {
+      SET.suara = (e.target as HTMLInputElement).checked;
+      saveSettings();
+      if (SET.suara) say("Pemandu suara dihidupkan.", "ms", true);
+      else hush();
+    };
+  el<HTMLInputElement>("setTenaga").onchange = (e) => {
+    SET.tenaga = (e.target as HTMLInputElement).checked;
+    saveSettings();
+    applyTenagaSetting();
+  };
+  if (GYRO.ok)
+    el<HTMLInputElement>("setGyro").onchange = (e) => {
+      const box = e.target as HTMLInputElement;
+      void setGyro(box.checked).then((on) => {
+        box.checked = on;
+      });
+    };
   el("setAch").onclick = () => openAch();
   el("setRefs").onclick = () => openRefs();
   el("setReset").onclick = () => {
@@ -768,6 +891,10 @@ function openSettings(): void {
 }
 function applyMiniSetting(): void {
   el("minimap").hidden = !SET.mini;
+}
+function applyTenagaSetting(): void {
+  el("chipEn").hidden = !SET.tenaga;
+  el("bMinum").hidden = !SET.tenaga;
 }
 
 function zoomBy(f: number): void {

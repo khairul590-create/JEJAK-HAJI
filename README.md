@@ -20,6 +20,8 @@ src/
                   kamera Belakang / Mata / Atas, label diunjur
 build.mjs         gabung semuanya menjadi satu fail HTML
 dist/jejak-haji.html   ← fail siap main (satu fail sahaja)
+models/           model 3D .glb daripada Blender (pilihan)
+docs/BLENDER.md   panduan membina model & render dengan Blender
 ```
 
 ## Bina semula selepas mengubah kod
@@ -29,6 +31,17 @@ npm install              # jenis Three.js (@types/three) untuk semakan TypeScrip
 tsc -p tsconfig.json     # semak jenis & kompil ke build/js
 node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
 ```
+
+## Ciri tambahan (diilhamkan oleh simulator haji lain)
+- **Pemandu suara:** arahan setiap langkah dan doa dibacakan melalui Web Speech API pelayar. Suara Bahasa Melayu bergantung
+  pada peranti; jika tiada, suara Bahasa Indonesia digunakan. Butang **Dengar** pada kad doa. Boleh dimatikan dalam Tetapan.
+- **Tenaga & air:** meter tenaga berkurang apabila berjalan atau berlari, terutama di tempat panas pada waktu siang.
+  Berehat dengan berdiri diam, atau tekan **Minum** (kekunci F). Botol diisi semula di tong Zamzam dan di dalam bas.
+  Kadar boleh diubah dalam `CONFIG.tenaga` (`src/00-config.ts`).
+- **Panduan jemaah:** kesilapan lazim, langkah jika terpisah daripada rombongan, serta tenaga dan kesihatan
+  (Panduan → Panduan jemaah).
+- **Giroskop:** di telefon, gerakkan telefon untuk memandang sekeliling dalam kamera Mata 3D (Tetapan).
+- **Model Blender (.glb):** model 3D luaran boleh menggantikan model asas. Lihat [docs/BLENDER.md](docs/BLENDER.md).
 
 ## Paparan 3D
 - Butang **3D** di bar atas (atau kekunci V). Mod 2D berfungsi tanpa internet; mod 3D perlukan internet

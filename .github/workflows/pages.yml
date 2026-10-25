@@ -45,8 +45,11 @@ jobs:
         run: |
           cp dist/jejak-haji.html site/index.html
           touch site/.nojekyll
+          # model 3D daripada Blender (.glb) — lihat docs/BLENDER.md
+          rm -rf site/models
+          if [ -d models ]; then cp -r models site/models; fi
           cd site
-          git add index.html .nojekyll
+          git add -A
           if git diff --cached --quiet; then
             echo "Tiada perubahan pada game; tidak perlu terbit semula."
             exit 0

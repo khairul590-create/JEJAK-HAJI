@@ -21,6 +21,8 @@ interface Save {
   scene: SceneId;
   lastTawaf: string;
   quiz: number;
+  tenaga: number;
+  air: number;
 }
 
 function newSave(name: string, gender: Gender): Save {
@@ -43,6 +45,8 @@ function newSave(name: string, gender: Gender): Save {
     scene: "miqat",
     lastTawaf: "",
     quiz: 0,
+    tenaga: 100,
+    air: CONFIG.tenaga.botol,
   };
 }
 function validSave(s: unknown): s is Save {
@@ -72,6 +76,8 @@ const T = {
   bumpCd: 0,
   pickTip: false,
   saveT: 0,
+  enWarn: 0,
+  minumCd: 0,
   hudT: 0,
   miniT: 0,
   running: false,
@@ -129,6 +135,7 @@ function advance(): void {
       later(() => banner(ch), 900);
     }
     nxt.step.onStart?.();
+    say(nxt.step.text, "ms", true);
   }
   renderMission();
   saveGame();
@@ -215,6 +222,9 @@ function travelTo(id: SceneId): void {
   const km = st && st.id.startsWith("bus_") ? (leg ? leg.km : "±7 km") : "";
   el("trKm").textContent = km ? `Jarak anggaran ${km}` : "";
   showTravel(scene.name, SCENE_NAMES[id], (st && TRAVEL_TIPS[st.id]) || "Perbanyakkan zikir dalam perjalanan.", () => loadScene(id), () => {
+    // berehat di dalam bas; air minuman disediakan
+    S.tenaga = Math.max(S.tenaga, 80);
+    S.air = CONFIG.tenaga.botol;
     if (curStep()?.travel === id) advance();
     toast(`Tiba di ${SCENE_NAMES[id]}.`, "info", 3000);
   });
@@ -298,6 +308,11 @@ function actSolatTawaf(): void {
 }
 function actZamzam(): void {
   T.zamCd = 8;
+  S.tenaga = Math.min(100, S.tenaga + CONFIG.tenaga.teguk);
+  if (S.air < CONFIG.tenaga.botol) {
+    S.air = CONFIG.tenaga.botol;
+    later(() => toast("Botol air diisi semula dengan air Zamzam.", "info", 3000), 600);
+  }
   P.pose = "pray";
   T.poseT = 1;
   showDoa("zamzam");
@@ -353,8 +368,12 @@ function openCukur(kind: "umrah" | "haji"): void {
     }
   );
 }
+function restFull(): void {
+  S.tenaga = 100;
+  S.air = CONFIG.tenaga.botol;
+}
 function actTarwiyah(): void {
-  fadeDo("Bermalam di Mina", "Malam 9 Zulhijjah · berzikir & berehat", () => undefined, () => finishStep("mina_tarwiyah"));
+  fadeDo("Bermalam di Mina", "Malam 9 Zulhijjah · berzikir & berehat", restFull, () => finishStep("mina_tarwiyah"));
 }
 function openNafar(): void {
   openChoice(
@@ -380,7 +399,7 @@ function openNafar(): void {
       fadeDo(
         "Bermalam di Mina",
         i === 0 ? "12 Zulhijjah · lontaran diulang, keluar sebelum Maghrib" : "12 & 13 Zulhijjah · lontaran diulang",
-        () => undefined,
+        restFull,
         () => finishStep("nafar")
       );
     }
@@ -426,7 +445,7 @@ function actKhutbah(): void {
   });
 }
 function actMabitMuzdalifah(): void {
-  fadeDo("Bermalam di Muzdalifah", "Lepas tengah malam · 10 Zulhijjah", () => undefined, () => {
+  fadeDo("Bermalam di Muzdalifah", "Lepas tengah malam · 10 Zulhijjah", restFull, () => {
     toast("Mabit di Muzdalifah sempurna. Kamu boleh bertolak ke Mina.", "ok");
     finishStep("mabit_muz");
   });
@@ -922,6 +941,7 @@ function openCert(): void {
   });
 }
 function resetGame(): void {
+  hush();
   removeKey(CONFIG.saveKey);
   const name = S.name;
   const g = S.gender;
@@ -1021,14 +1041,66 @@ function collide(p: Vec, r: number, solids: Solid[]): void {
   }
 }
 
+// =====================================================================
+//  TENAGA & AIR (diilhamkan oleh pemantauan kecergasan simulator HajSim)
+// =====================================================================
+function heatFactor(): number {
+  const l = currentLight();
+  if (l === "night") return 0.7;
+  if (l === "dusk") return 1;
+  // Masjidil Haram berbumbung sebahagiannya dan lantai marmar mataf sejuk
+  return scene.id === "makkah" ? 1.15 : 1.7;
+}
+function updateTenaga(dt: number): void {
+  T.minumCd -= dt;
+  if (!SET.tenaga) return;
+  const k = CONFIG.tenaga;
+  const still = !P.moving && T.busy <= 0;
+  if (P.moving) S.tenaga -= (T.running ? k.laju : k.jalan) * heatFactor() * dt;
+  else if (still || T.wukuf.praying) S.tenaga += k.rehat * dt;
+  S.tenaga = clamp(S.tenaga, 0, 100);
+  // amaran sekali bagi setiap paras; diset semula selepas pulih
+  if (S.tenaga > 50) T.enWarn = 0;
+  if (S.tenaga < 35 && T.enWarn < 1) {
+    T.enWarn = 1;
+    toast(
+      S.air > 0
+        ? "Tenaga rendah. Tekan Minum (F) untuk meneguk air, dan berdiri diam untuk berehat."
+        : "Tenaga rendah dan botol kosong. Isi semula di tong air Zamzam, atau berdiri diam untuk berehat.",
+      "warn",
+      5200
+    );
+    say("Tenaga rendah. Minum air dan berehat.", "ms");
+  }
+  if (S.tenaga < 15 && T.enWarn < 2) {
+    T.enWarn = 2;
+    toast("Terlalu letih! Kamu tidak boleh berlari. Awas strok haba: berteduh, minum dan berehat dahulu.", "bad", 6000);
+  }
+}
+function actMinum(): void {
+  if (!started || !SET.tenaga || modalOpen || overlayBusy || T.minumCd > 0) return;
+  if (S.air <= 0) {
+    toast("Botol air kosong. Isi semula di tong air Zamzam atau semasa menaiki bas.", "info", 4200);
+    return;
+  }
+  T.minumCd = 1.2;
+  S.air--;
+  S.tenaga = Math.min(100, S.tenaga + CONFIG.tenaga.teguk);
+  SND.play("pick");
+  floatText(P.x, P.y - 44, `+${CONFIG.tenaga.teguk} tenaga`);
+  refreshHUD();
+}
+
 function updatePlayer(dt: number): void {
   const raw = getInput();
   const inp = R3.active ? input3D(raw, dt) : raw;
   const mag = Math.min(1, Math.hypot(inp.x, inp.y));
   const blocked = T.busy > 0 || overlayBusy || modalOpen;
   if (T.wukuf.praying && mag > 0.3 && !blocked) stopWukuf("Wukuf dihentikan. Tekan BERDOA semula dan kekal diam.");
-  const wantRun = runToggle || shiftHeld;
-  let spd = blocked || T.wukuf.praying ? 0 : (wantRun ? CONFIG.runSpeed : CONFIG.walkSpeed) * mag;
+  const tired = SET.tenaga && S.tenaga < 15;
+  const wantRun = (runToggle || shiftHeld) && !tired;
+  const slow = !SET.tenaga ? 1 : tired ? 0.65 : S.tenaga < 35 ? 0.85 : 1;
+  const spd = blocked || T.wukuf.praying ? 0 : (wantRun ? CONFIG.runSpeed : CONFIG.walkSpeed) * mag * slow;
   const ox = P.x;
   const oy = P.y;
   if (spd > 0) {
@@ -1701,6 +1773,7 @@ function update(dt: number): void {
     }
   }
   updatePlayer(dt);
+  updateTenaga(dt);
   updateTawaf(dt);
   updateSaie(dt);
   updateWukuf(dt);
@@ -1786,6 +1859,9 @@ function setupStart(saved: Save | null): void {
 function startGame(save: Save): void {
   SND.init();
   S = save;
+  // simpanan lama (sebelum ciri tenaga) tiada medan ini
+  if (typeof S.tenaga !== "number") S.tenaga = 100;
+  if (typeof S.air !== "number") S.air = CONFIG.tenaga.botol;
   started = true;
   applyOutfit();
   const st = curStep();
@@ -1799,7 +1875,11 @@ function startGame(save: Save): void {
   if (S.step === 0) {
     later(() => banner(CHAPTERS[0]), 500);
     later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
-  } else toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
+    say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
+  } else {
+    toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
+    say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+  }
   saveGame();
   if (SET.view3d) void set3D(true, true);
   else if (S.step < 3) later(() => toast("Cuba butang 3D di atas untuk paparan 3D. Pilih kamera Mata untuk berjalan seperti jemaah sebenar.", "info", 6500), 9000);
@@ -1812,7 +1892,9 @@ function boot(hot: Partial<Save> | null): void {
   paintAudio();
   paintViewControls();
   applyMiniSetting();
+  applyTenagaSetting();
   initInput();
+  if (SET.gyro) void setGyro(true, true);
   resize();
   window.addEventListener("resize", resize);
   scene = getScene("makkah");
@@ -1854,6 +1936,7 @@ else boot((HOT?.data as Partial<Save>) ?? null);
     cam.y = y;
   },
   finish: () => advance(),
+  models: MODELS3D,
   C3,
   R3,
   set3D: (on: boolean) => set3D(on, true),

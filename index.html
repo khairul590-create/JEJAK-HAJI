@@ -27,6 +27,7 @@
         <div class="chips">
           <span class="chip" title="Bintang ganjaran"><i class="ic-star" data-ic="star"></i><b id="cStars">0</b></span>
           <span class="chip" title="Batu untuk melontar"><i class="ic-peb" data-ic="pebble"></i><b id="cPebbles">0</b></span>
+          <span class="chip en" id="chipEn" title="Tenaga dan baki air dalam botol"><i class="ic-en" data-ic="bolt"></i><b id="cEn">100</b><i class="ic-air" data-ic="water"></i><b id="cAir">4</b></span>
         </div>
       </div>
       <nav class="tools" aria-label="Menu">
@@ -74,6 +75,7 @@
         <div class="smalls">
           <button class="sbtn" id="bMisi" type="button" data-ic="list"><span>Misi</span></button>
           <button class="sbtn" id="bRun" type="button" aria-pressed="false" data-ic="fast"><span>Laju</span></button>
+          <button class="sbtn" id="bMinum" type="button" data-ic="water" aria-label="Minum air"><span>Minum</span><b class="sb-n" id="bAirN">4</b></button>
           <button class="sbtn" id="bCam" type="button" hidden><span>Kamera</span></button>
         </div>
         <div class="zooms">
@@ -91,7 +93,7 @@
     <div class="doa-ar" id="doaAr" dir="rtl" lang="ar"></div>
     <div class="doa-rumi" id="doaRumi"></div>
     <div class="doa-mk" id="doaMk"></div>
-    <div class="doa-src" id="doaSrc"></div>
+    <div class="doa-foot"><div class="doa-src" id="doaSrc"></div><button class="doa-play" id="doaPlay" type="button" data-ic="speak"><span>Dengar</span></button></div>
   </div>
 
   <div class="modal" id="modal" hidden>

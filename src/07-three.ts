@@ -6,6 +6,8 @@
 // =====================================================================
 
 const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+// Pemuat glTF versi bukan-modul yang sepadan dengan r128 (dimuat hanya jika MODELS3D berisi)
+const GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";
 const K3 = 0.1;
 const LOWQ = window.matchMedia("(pointer: coarse)").matches;
 
@@ -1082,85 +1084,22 @@ function ensureWorld(): void {
   }
   const lamps: THREE.Vector3[] = [];
   let seed = 100;
+  // model asas yang akan diganti oleh model .glb dibina dalam kumpulan tersendiri
+  const repl = new Set(MODELS3D.filter((m) => m.scene === sc.id && m.replace).map((m) => m.replace as string));
+  const subs = new Map<string, THREE.Group>();
   for (const d of sc.m3) {
-    switch (d.k) {
-      case "bld":
-        addBuilding(g, d);
-        break;
-      case "palm":
-        addPalm(g, d.x, d.y, d.h);
-        break;
-      case "tree":
-        addTree(g, d.x, d.y, d.s, seed++);
-        break;
-      case "board":
-        addBoard(g, d.x, d.y, d.title, d.col);
-        break;
-      case "lamp":
-        addLamp(g, d.x, d.y, lamps);
-        break;
-      case "minaret":
-        addMinaret(g, d.x, d.y, d.h, d.col);
-        break;
-      case "bus":
-        addBus(g, d.x, d.y, d.w, d.d);
-        break;
-      case "tent":
-        addTent(g, d.x, d.y, d.w, d.d, d.col, d.hl);
-        break;
-      case "rocks":
-        addRocks(g, d.x, d.y, d.w, d.seed, d.col);
-        break;
-      case "wall":
-        addWall(g, d);
-        break;
-      case "pillar":
-        addPillar(g, d);
-        break;
-      case "cooler": {
-        const [X, Z] = P3(d.x, d.y);
-        g.add(mesh(new THREE.BoxGeometry(2.4, 1.6, 1.2), lam("#e9eef2"), X, 0.8, Z));
-        g.add(mesh(new THREE.BoxGeometry(2.42, 0.3, 1.22), lam("#3d6fb4"), X, 1.1, Z));
-        for (const dx of [-0.5, 0.5]) g.add(mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.8, 10), lam("#9fc3e6", { transparent: true, opacity: 0.85 }), X + dx, 2.0, Z));
-        break;
+    let tg = g;
+    if (repl.has(d.k)) {
+      let sub = subs.get(d.k);
+      if (!sub) {
+        sub = new THREE.Group();
+        sub.name = "asas:" + d.k;
+        g.add(sub);
+        subs.set(d.k, sub);
       }
-      case "kaabah":
-        addKaabah(g);
-        break;
-      case "maqam":
-        addMaqam(g, d.x, d.y);
-        break;
-      case "arcade":
-        addArcade(g, d.r0, d.r1, d.h);
-        break;
-      case "gate":
-        addGate(g, d.x0, d.x1, d.y);
-        break;
-      case "green":
-        addGreen(g, d.x0, d.x1, d.y);
-        break;
-      case "skyline":
-        addSkyline(g);
-        break;
-      case "jamrah":
-        addJamrah(g, d.x, d.y, d.rx, d.ry);
-        break;
-      case "hill":
-        addHill(g, d.x, d.y, d.rx, d.ry, d.h);
-        break;
-      case "sign":
-        addSign(g, d.x, d.y, d.text);
-        break;
-      case "pole":
-        addPole(g, d.x, d.y);
-        break;
-      case "mountains":
-        addMountains(g, d.x0, d.y0, d.x1, d.y1, d.col, d.seed);
-        break;
-      case "stars":
-        addStarfield(g);
-        break;
+      tg = sub;
     }
+    addM3(tg, d, lamps, d.k === "tree" ? seed++ : seed);
   }
   const people = makePeople(Math.max(40, sc.npcs.length), g);
   const peb = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.17, 0), flat("#8d877a"), 300);
@@ -1171,6 +1110,166 @@ function ensureWorld(): void {
   BUILD_TEX = [];
   updatePeople(people, sc.npcs, true);
   R3.light = "";
+  loadModels(sc.id, g, subs);
+}
+
+function addM3(g: THREE.Group, d: M3, lamps: THREE.Vector3[], seed: number): void {
+  switch (d.k) {
+    case "bld":
+      addBuilding(g, d);
+      break;
+    case "palm":
+      addPalm(g, d.x, d.y, d.h);
+      break;
+    case "tree":
+      addTree(g, d.x, d.y, d.s, seed);
+      break;
+    case "board":
+      addBoard(g, d.x, d.y, d.title, d.col);
+      break;
+    case "lamp":
+      addLamp(g, d.x, d.y, lamps);
+      break;
+    case "minaret":
+      addMinaret(g, d.x, d.y, d.h, d.col);
+      break;
+    case "bus":
+      addBus(g, d.x, d.y, d.w, d.d);
+      break;
+    case "tent":
+      addTent(g, d.x, d.y, d.w, d.d, d.col, d.hl);
+      break;
+    case "rocks":
+      addRocks(g, d.x, d.y, d.w, d.seed, d.col);
+      break;
+    case "wall":
+      addWall(g, d);
+      break;
+    case "pillar":
+      addPillar(g, d);
+      break;
+    case "cooler": {
+      const [X, Z] = P3(d.x, d.y);
+      g.add(mesh(new THREE.BoxGeometry(2.4, 1.6, 1.2), lam("#e9eef2"), X, 0.8, Z));
+      g.add(mesh(new THREE.BoxGeometry(2.42, 0.3, 1.22), lam("#3d6fb4"), X, 1.1, Z));
+      for (const dx of [-0.5, 0.5]) g.add(mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.8, 10), lam("#9fc3e6", { transparent: true, opacity: 0.85 }), X + dx, 2.0, Z));
+      break;
+    }
+    case "kaabah":
+      addKaabah(g);
+      break;
+    case "maqam":
+      addMaqam(g, d.x, d.y);
+      break;
+    case "arcade":
+      addArcade(g, d.r0, d.r1, d.h);
+      break;
+    case "gate":
+      addGate(g, d.x0, d.x1, d.y);
+      break;
+    case "green":
+      addGreen(g, d.x0, d.x1, d.y);
+      break;
+    case "skyline":
+      addSkyline(g);
+      break;
+    case "jamrah":
+      addJamrah(g, d.x, d.y, d.rx, d.ry);
+      break;
+    case "hill":
+      addHill(g, d.x, d.y, d.rx, d.ry, d.h);
+      break;
+    case "sign":
+      addSign(g, d.x, d.y, d.text);
+      break;
+    case "pole":
+      addPole(g, d.x, d.y);
+      break;
+    case "mountains":
+      addMountains(g, d.x0, d.y0, d.x1, d.y1, d.col, d.seed);
+      break;
+    case "stars":
+      addStarfield(g);
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------
+//  Model .glb luaran (Blender) — lihat docs/BLENDER.md
+// ---------------------------------------------------------------------
+interface GltfLoaderLike {
+  load(url: string, ok: (g: { scene: THREE.Group }) => void, prog?: unknown, err?: (e: unknown) => void): void;
+}
+let gltfReady: Promise<boolean> | null = null;
+const gltfCache = new Map<string, Promise<THREE.Group | null>>();
+function loadGltfLib(): Promise<boolean> {
+  if ((THREE as unknown as { GLTFLoader?: unknown }).GLTFLoader) return Promise.resolve(true);
+  if (!gltfReady)
+    gltfReady = new Promise((res) => {
+      const s = document.createElement("script");
+      s.src = GLTF_URL;
+      s.async = true;
+      s.onload = () => res(true);
+      s.onerror = () => res(false);
+      document.head.appendChild(s);
+    });
+  return gltfReady;
+}
+function fetchModel(file: string): Promise<THREE.Group | null> {
+  let p = gltfCache.get(file);
+  if (!p) {
+    p = loadGltfLib().then(
+      (ok) =>
+        new Promise<THREE.Group | null>((res) => {
+          if (!ok) return res(null);
+          const L = new (THREE as unknown as { GLTFLoader: new () => GltfLoaderLike }).GLTFLoader();
+          L.load(
+            file,
+            (gl) => res(gl.scene),
+            undefined,
+            (e) => {
+              console.warn("Model 3D gagal dimuat:", file, e);
+              res(null);
+            }
+          );
+        })
+    );
+    gltfCache.set(file, p);
+  }
+  return p;
+}
+function loadModels(id: SceneId, g: THREE.Group, subs: Map<string, THREE.Group>): void {
+  const list = MODELS3D.filter((m) => m.scene === id);
+  for (const m of list) {
+    void fetchModel(m.file).then((src) => {
+      // pemain mungkin sudah bertukar lokasi semasa model dimuat
+      if (!src || !R3.world || R3.world.group !== g) return;
+      const obj = src.clone(true);
+      const [X, Z] = P3(m.x, m.y);
+      obj.position.set(X, 0, Z);
+      obj.rotation.y = ((m.rot ?? 0) * Math.PI) / 180;
+      obj.scale.setScalar(m.scale ?? 1);
+      obj.traverse((o) => {
+        const ms = o as THREE.Mesh;
+        if (!ms.isMesh) return;
+        ms.castShadow = true;
+        ms.receiveShadow = true;
+        // renderer menggunakan output linear; kekalkan warna asal tekstur Blender
+        const mats = Array.isArray(ms.material) ? ms.material : [ms.material];
+        for (const mt of mats) {
+          const mm = mt as THREE.MeshStandardMaterial;
+          if (mm.map) mm.map.encoding = THREE.LinearEncoding;
+          if (mm.emissiveMap) mm.emissiveMap.encoding = THREE.LinearEncoding;
+          mm.needsUpdate = true;
+        }
+      });
+      g.add(obj);
+      if (m.replace) {
+        const sub = subs.get(m.replace);
+        if (sub) sub.visible = false;
+      }
+    });
+  }
 }
 
 function applyLight3D(l: Light): void {
@@ -1286,6 +1385,65 @@ function initDrag3D(): void {
   };
   cv.addEventListener("pointerup", end);
   cv.addEventListener("pointercancel", end);
+}
+
+// ---------------------------------------------------------------------
+//  Giroskop: pusing telefon untuk memandang dalam kamera Mata
+// ---------------------------------------------------------------------
+type OrientPerm = { requestPermission?: () => Promise<string> };
+const GYRO = {
+  ok: typeof window.DeviceOrientationEvent !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  on: false,
+  lastA: null as number | null,
+};
+function onOrient(e: DeviceOrientationEvent): void {
+  if (e.alpha == null || e.beta == null) return;
+  const a = (e.alpha * Math.PI) / 180;
+  const live = R3.active && C3.mode === "eye" && !modalOpen;
+  if (live && GYRO.lastA != null) {
+    // putar telefon ke kiri (alpha bertambah) = pandang ke kiri (yaw bertambah)
+    C3.yaw += wrapPi(a - GYRO.lastA);
+    // telefon tegak (beta ±90°) = pandang lurus; dongak/tunduk ikut kecondongan
+    if (window.innerHeight >= window.innerWidth) C3.eyePitch = clamp(((e.beta - 90) * Math.PI) / 180, -0.7, 0.6);
+  }
+  GYRO.lastA = a;
+}
+async function setGyro(on: boolean, quiet = false): Promise<boolean> {
+  if (!GYRO.ok) return false;
+  if (!on) {
+    window.removeEventListener("deviceorientation", onOrient);
+    GYRO.on = false;
+    SET.gyro = false;
+    saveSettings();
+    return false;
+  }
+  const perm = (window.DeviceOrientationEvent as unknown as OrientPerm).requestPermission;
+  if (perm) {
+    // iOS: kebenaran mesti diminta daripada tindakan pengguna
+    if (quiet) {
+      window.addEventListener("pointerdown", () => void setGyro(true), { once: true });
+      return false;
+    }
+    let res = "denied";
+    try {
+      res = await perm();
+    } catch {
+      /* ditolak */
+    }
+    if (res !== "granted") {
+      toast("Kebenaran sensor gerakan ditolak. Giroskop tidak dapat digunakan.", "warn", 4500);
+      SET.gyro = false;
+      saveSettings();
+      return false;
+    }
+  }
+  if (!GYRO.on) window.addEventListener("deviceorientation", onOrient);
+  GYRO.on = true;
+  GYRO.lastA = null;
+  SET.gyro = true;
+  saveSettings();
+  if (!quiet) toast("Giroskop dihidupkan. Dalam paparan 3D, pilih kamera Mata dan gerakkan telefon untuk memandang sekeliling.", "info", 5500);
+  return true;
 }
 
 // ---------------------------------------------------------------------

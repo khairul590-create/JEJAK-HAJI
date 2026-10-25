@@ -14,6 +14,14 @@ const CONFIG = {
     settingsKey: "jejakHaji.settings.v1",
     walkSpeed: 112,
     runSpeed: 178,
+    // Tenaga jemaah (0–100) dan botol air. Kadar dalam unit sesaat.
+    tenaga: {
+        jalan: 0.22, // berkurang semasa berjalan
+        laju: 0.9, // berkurang semasa berlari-lari anak
+        rehat: 3, // bertambah semasa berdiri diam
+        teguk: 25, // tambahan tenaga bagi setiap teguk air
+        botol: 4, // bilangan teguk dalam botol penuh
+    },
 };
 const DOA = {
     talbiah: {
@@ -212,7 +220,53 @@ const READ = {
         html: `<p><b>Tawaf wada'</b> (tawaf selamat tinggal) hukumnya wajib dalam mazhab Syafie bagi jemaah yang hendak meninggalkan Makkah. Ia dilakukan sebagai urusan terakhir sebelum berangkat.</p>
 <p>Wanita yang haid atau nifas dikecualikan dan tidak dikenakan dam. Tawaf wada' tidak diikuti dengan saie.</p>`,
     },
+    // --- Panduan tambahan (dibuka dari Panduan bermain) ---
+    kesilapan: {
+        kicker: "Panduan jemaah",
+        title: "Kesilapan lazim yang perlu dielakkan",
+        html: `<p>Kesilapan berikut sering berlaku dan boleh menjejaskan sahnya ibadah atau mewajibkan dam. Semak dengan pembimbing ibadah jika ragu-ragu.</p>
+<ul><li><b>Melepasi miqat tanpa berniat ihram.</b> Jemaah wajib kembali ke miqat untuk berniat, atau dikenakan dam.</li>
+<li><b>Memulakan tawaf bukan dari Hajarul Aswad.</b> Pusingan yang tidak bermula dari garisan Hajarul Aswad tidak dikira.</li>
+<li><b>Masuk ke dalam Hijir Ismail ketika tawaf.</b> Hijir Ismail sebahagian daripada Kaabah, jadi pusingan itu tidak sah dan perlu diulang.</li>
+<li><b>Kaabah tidak di sebelah kiri.</b> Berjalan sambil menghadap atau membelakangi Kaabah menjadikan bahagian tawaf itu tidak sah.</li>
+<li><b>Bertawaf dalam keadaan berhadas.</b> Jika wuduk terbatal, berhenti, berwuduk semula, kemudian sambung tawaf.</li>
+<li><b>Memulakan saie dari Bukit Marwah.</b> Saie mesti bermula di Safa dan berakhir di Marwah.</li>
+<li><b>Berwukuf di luar sempadan Arafah</b>, contohnya di Wadi Uranah. Wukuf di luar sempadan tidak sah. Perhatikan papan tanda sempadan.</li>
+<li><b>Batu tidak masuk ke dalam takungan jamrah</b>, atau tujuh biji dilontar sekali gus (dikira satu lontaran sahaja). Lontar satu demi satu.</li>
+<li><b>Melontar pada hari Tasyrik sebelum gelincir matahari</b>, atau tidak mengikut tertib Ula → Wusta → Aqabah.</li>
+<li><b>Melanggar larangan ihram tanpa sedar</b>, seperti memakai wangian, mencabut rambut atau memotong kuku.</li></ul>
+<p class="muted">Simulasi ini menegur kesilapan tawaf, saie, wukuf dan melontar semasa kamu bermain.</p>`,
+    },
+    sesat: {
+        kicker: "Panduan jemaah",
+        title: "Jika terpisah daripada rombongan",
+        html: `<p>Berjuta-juta jemaah berada di tempat yang sama, jadi terpisah daripada rombongan perkara biasa. Bersedialah sebelum ia berlaku.</p>
+<p><b>Sebelum keluar:</b></p>
+<ul><li>Sentiasa pakai gelang dan kad pengenalan jemaah, dan simpan alamat hotel serta nombor maktab.</li>
+<li>Simpan nombor telefon ketua rombongan dan pegawai Tabung Haji. Pastikan telefon dicas penuh.</li>
+<li>Tetapkan tempat berkumpul sebelum masuk Masjidil Haram, contohnya nombor pintu tertentu.</li>
+<li>Di Mina dan Arafah, hafal nombor maktab, nombor lorong dan papan tanda berhampiran khemah.</li></ul>
+<p><b>Jika terpisah:</b></p>
+<ul><li>Bertenang. Berhenti di tempat yang selamat dan tidak sesak.</li>
+<li>Hubungi ketua rombongan, atau pergi ke tempat berkumpul yang telah dijanjikan.</li>
+<li>Minta bantuan petugas haji, polis atau pusat bantuan jemaah sesat. Tunjukkan kad atau gelang pengenalan kamu.</li>
+<li>Jangan mengikut orang yang tidak dikenali ke tempat lain.</li></ul>`,
+    },
+    kesihatan: {
+        kicker: "Panduan jemaah",
+        title: "Jaga tenaga & kesihatan",
+        html: `<p>Cuaca di Makkah, Mina dan Arafah sangat panas. Banyak ibadah haji dilakukan dengan berjalan kaki, jadi tenaga perlu dijaga untuk ibadah wajib.</p>
+<ul><li><b>Minum air dengan kerap</b> walaupun tidak haus. Bawa botol air dan isi semula, contohnya di tong air Zamzam.</li>
+<li><b>Berteduh.</b> Gunakan payung, elakkan berjalan jauh di tengah hari, dan berehat di dalam khemah.</li>
+<li><b>Jangan memaksa diri.</b> Berlari-lari anak (ramal dan di lampu hijau) hukumnya sunat. Simpan tenaga untuk wukuf, melontar dan tawaf.</li>
+<li><b>Kenali tanda strok haba:</b> pening, keliru, kulit panas dan kering, atau berhenti berpeluh. Segera bawa pesakit ke tempat teduh, sejukkan badannya dan dapatkan rawatan.</li>
+<li>Pakai kasut atau selipar yang selesa. Bawa ubat harian dan ikut nasihat doktor jika menghidap penyakit kronik.</li></ul>
+<p class="fact"><b>Dalam game ini:</b> meter <b>tenaga</b> berkurang apabila kamu berjalan, lebih cepat semasa berlari dan di tempat panas pada waktu siang. Berdiri diam untuk berehat, atau tekan <b>Minum</b> (kekunci F) untuk meneguk air. Botol diisi semula di tong Zamzam dan di dalam bas. Ciri ini boleh dimatikan dalam Tetapan.</p>`,
+    },
 };
+const MODELS3D = [
+// Contoh: { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },
+];
 const QUIZ_UMRAH = [
     {
         q: "Berapakah bilangan rukun umrah?",
@@ -386,6 +440,12 @@ const REFS = [
     { t: "Jabal ar Rahmah", src: "PeakVisor", url: "https://peakvisor.com/peak/jabal-ar-rahmah.html", use: "Ketinggian ±70 m dari dataran" },
     { t: "Muzdalifah Holy Site", src: "Saudipedia", url: "https://saudipedia.com/en/muzdalifah-holy-site", use: "Keluasan, Lembah Muhassir, Masjid al-Masy'aril Haram" },
     { t: "Miqat Dhu al-Hulayfah", src: "Saudipedia", url: "https://saudipedia.com/en/miqat-dhu-al-hulayfah", use: "Jarak dari Madinah dan Makkah, menara 62 m" },
+    { t: "Hajj simulator Labbaik VR helps Muslims prepare for the holy pilgrimage", src: "Rest of World", url: "https://restofworld.org/2024/divinity-altered-reality-pilgrimage-simulator/", use: "Idea ciri: panduan jika terpisah daripada rombongan" },
+    { t: "HAJSIM: Hajj simulator", src: "Universiti Teknologi Malaysia", url: "https://icc.utm.my/project/hajsim/", use: "Idea ciri: pemantauan kecergasan (meter tenaga & air)" },
+    { t: "The Free Hajj: Virtual Reality in Manasik Hajj Training Education", src: "ResearchGate", url: "https://www.researchgate.net/publication/352080446_The_Free_Hajj_Virtual_Reality_in_Manasik_Hajj_Training_Education", use: "Idea ciri: narasi audio (pemandu suara)" },
+    { t: "iHaji VR Simulasi", src: "Penerbit UTHM", url: "https://penerbit.uthm.edu.my/ojs/index.php/jqsr/article/download/22530/7580/108437", use: "Idea ciri: simulasi rukun & wajib haji secara maya" },
+    { t: "Virtualisasi Masjidil Haram", src: "UHAMKA", url: "https://journal.uhamka.ac.id/index.php/teknoka/article/download/754/298/1431", use: "Idea ciri: giroskop untuk memandang sekeliling" },
+    { t: "Aplikasi VR 3D pelbagai bahasa untuk panduan haji dan umrah (laporan berita)", src: "Bernama", url: "https://www.bernama.com/en/news.php?id=2307098", use: "Idea ciri: panduan kesilapan lazim jemaah" },
 ];
 const REF_NOTE = "Simulasi ini ialah alat bantu pembelajaran. Ukuran dalam game dipermudahkan dan tidak mengikut skala sebenar. Untuk amalan sebenar, rujuk pembimbing ibadah dan panduan rasmi Lembaga Tabung Haji. Ayat al-Quran yang dipetik: Al-Baqarah 2:158, 2:196, 2:198 dan 2:201. Hadis yang dipetik: riwayat al-Bukhari, Muslim dan at-Tirmizi.";
 
@@ -2860,9 +2920,22 @@ const ICON = {
     cam: '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13" r="3.4"/></svg>',
     eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
     link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+    bolt: '<svg viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z" fill="currentColor" stroke="none"/></svg>',
+    speak: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>',
 };
 const ic = (name) => ICON[name] ?? "";
-let SET = { zoom: 1, doa: true, mini: true, arrow: true, sound: true, view3d: false, hq: !window.matchMedia("(pointer: coarse)").matches };
+let SET = {
+    zoom: 1,
+    doa: true,
+    mini: true,
+    arrow: true,
+    sound: true,
+    view3d: false,
+    hq: !window.matchMedia("(pointer: coarse)").matches,
+    suara: true,
+    tenaga: true,
+    gyro: false,
+};
 function loadSettings() {
     const s = loadJSON(CONFIG.settingsKey);
     if (s)
@@ -2871,6 +2944,60 @@ function loadSettings() {
 }
 function saveSettings() {
     saveJSON(CONFIG.settingsKey, SET);
+}
+// ---------------------------------------------------------------------
+//  PEMANDU SUARA (Web Speech API — suara bergantung pada peranti)
+// ---------------------------------------------------------------------
+const VOICE = {
+    ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined",
+    ms: null,
+    ar: null,
+    picked: false,
+};
+function pickVoices() {
+    if (!VOICE.ok)
+        return;
+    const vs = window.speechSynthesis.getVoices();
+    if (!vs.length)
+        return;
+    const find = (re) => vs.find((v) => re.test(v.lang.replace("_", "-"))) ?? null;
+    // Bahasa Melayu; jika tiada, Bahasa Indonesia paling hampir sebutannya
+    VOICE.ms = find(/^ms/i) ?? find(/^id/i);
+    VOICE.ar = find(/^ar/i);
+    VOICE.picked = true;
+}
+if (VOICE.ok) {
+    pickVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", pickVoices);
+}
+function speechOn() {
+    return VOICE.ok && SET.suara && SET.sound;
+}
+function say(text, lang = "ms", flush = false) {
+    if (!speechOn() || !text)
+        return;
+    if (!VOICE.picked)
+        pickVoices();
+    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ", "));
+    const v = lang === "ar" ? VOICE.ar : VOICE.ms;
+    if (v)
+        u.voice = v;
+    u.lang = v ? v.lang : lang === "ar" ? "ar-SA" : "ms-MY";
+    u.rate = lang === "ar" ? 0.85 : 1;
+    if (flush)
+        window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
+}
+function hush() {
+    if (VOICE.ok)
+        window.speechSynthesis.cancel();
+}
+function sayDoa(d, flush = true) {
+    if (VOICE.ar)
+        say(d.ar, "ar", flush);
+    else
+        say(d.rumi, "ms", flush);
+    say("Maksudnya: " + d.makna);
 }
 let lastToast = { text: "", t: 0 };
 function toast(text, kind = "info", ms = 4800) {
@@ -2918,7 +3045,10 @@ function showDoa(key, auto = false) {
     box.classList.add("in");
     window.clearTimeout(doaTimer);
     doaTimer = window.setTimeout(hideDoa, 11000);
+    curDoa = key;
+    sayDoa(d, false);
 }
+let curDoa = "";
 function hideDoa() {
     el("doa").hidden = true;
 }
@@ -3160,7 +3290,12 @@ function getInput() {
 }
 function typingInField() {
     const a = document.activeElement;
-    return !!a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA");
+    if (!a)
+        return false;
+    if (a.tagName === "TEXTAREA")
+        return true;
+    // kotak semak & gelangsar dalam Tetapan tidak menghalang kekunci Escape
+    return a.tagName === "INPUT" && !["checkbox", "radio", "range", "button"].includes(a.type);
 }
 function initInput() {
     window.addEventListener("keydown", (e) => {
@@ -3186,6 +3321,8 @@ function initInput() {
             zoomOut();
         if (e.code === "KeyM")
             toggleMission();
+        if (e.code === "KeyF" && !e.repeat)
+            actMinum();
         if (e.code === "KeyC")
             cycleCam();
         if (e.code === "KeyV")
@@ -3309,7 +3446,24 @@ function initInput() {
         if (SET.sound)
             SND.play("tap");
     });
-    el("doaX").addEventListener("click", hideDoa);
+    el("doaX").addEventListener("click", () => {
+        hideDoa();
+        hush();
+    });
+    el("doaPlay").addEventListener("click", () => {
+        const d = DOA[curDoa];
+        if (!d)
+            return;
+        if (!speechOn()) {
+            toast(VOICE.ok ? "Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa." : "Pelayar ini tidak menyokong pemandu suara.", "info", 4000);
+            return;
+        }
+        sayDoa(d);
+    });
+    el("bMinum").addEventListener("click", () => {
+        SND.init();
+        actMinum();
+    });
     el("modal").addEventListener("click", (e) => {
         if (e.target === el("modal") && modalDismiss)
             closeModal();
@@ -3337,7 +3491,7 @@ function paintViewControls() {
     cam.innerHTML = ic(C3.mode === "eye" ? "eye" : "cam") + `<span>${CAM_NAMES[C3.mode]}</span>`;
     el("keyhint").textContent = R3.active
         ? "WASD / kayu bedik: jalan · seret skrin: pusing kamera · Q/R: pusing · roda atau + −: zum · C: kamera · E: interaksi"
-        : "WASD / anak panah: jalan · Shift: laju · E / Space: interaksi · roda tetikus atau + −: zum · V: 3D";
+        : "WASD / anak panah: jalan · Shift: laju · E / Space: interaksi · F: minum · roda tetikus atau + −: zum · V: 3D";
 }
 function toggleMission(force) {
     const m = el("mission");
@@ -3367,6 +3521,15 @@ function refreshHUD() {
     el("pBar").style.width = `${(doneTasks / total) * 100}%`;
     el("cStars").textContent = String(S.stars);
     el("cPebbles").textContent = String(S.pebbles);
+    if (SET.tenaga) {
+        const en = Math.round(S.tenaga);
+        el("cEn").textContent = String(en);
+        el("cAir").textContent = String(S.air);
+        const n = el("bAirN");
+        n.textContent = String(S.air);
+        n.className = "sb-n" + (S.air <= 0 ? " empty" : "");
+        el("chipEn").className = "chip en" + (en < 15 ? " bad" : en < 35 ? " low" : "");
+    }
     let date = "Selesai — semoga diterima Allah";
     let title = "Semua tugasan selesai";
     let count = "";
@@ -3451,7 +3614,11 @@ function openGuide() {
 <li><b>Zum:</b> butang + dan − di kanan bawah, roda tetikus, cubit dua jari (3D), atau kekunci + dan −.</li>
 <li><b>Paparan 3D:</b> tekan butang 3D di atas. Seret skrin untuk memusing kamera. Butang Kamera menukar pandangan: <i>Belakang</i>, <i>Mata</i> (seperti berjalan sendiri di mataf) dan <i>Atas</i>.</li>
 <li><b>Peta:</b> butang Peta menunjukkan laluan haji dan jaraknya. Ketik peta mini untuk peta lokasi yang lebih besar.</li>
+<li><b>Tenaga & air:</b> meter tenaga di atas berkurang apabila berjalan, terutama semasa panas. Berdiri diam untuk berehat, atau tekan <b>Minum</b> (kekunci F).</li>
+<li><b>Pemandu suara:</b> arahan dan doa dibacakan secara automatik. Tekan butang <b>Dengar</b> pada kad doa untuk mendengar semula. Matikan dalam Tetapan.</li>
 </ul>
+<p class="gsub">Panduan jemaah</p>
+<div class="set-row"><button type="button" class="btn ghost" id="gKes">Kesilapan lazim</button><button type="button" class="btn ghost" id="gSes">Jika terpisah</button><button type="button" class="btn ghost" id="gSih">Tenaga & kesihatan</button></div>
 <p class="muted">Kemajuan disimpan secara automatik dalam pelayar ini.</p>`,
         buttons: [
             { label: "Rujukan", kind: "ghost", onClick: openRefs },
@@ -3466,6 +3633,9 @@ function openGuide() {
             { label: "Tutup", kind: "primary" },
         ],
     });
+    el("gKes").onclick = () => openReading("kesilapan");
+    el("gSes").onclick = () => openReading("sesat");
+    el("gSih").onclick = () => openReading("kesihatan");
 }
 function openAch() {
     const rows = ACH_LIST.map((a) => {
@@ -3506,6 +3676,9 @@ function openSettings() {
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
 <label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
+${VOICE.ok ? `<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>` : ""}
+<label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
+${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
 <div class="danger"><button type="button" class="btn ghost" id="setReset">Mula semula dari awal</button>
 <div id="setConfirm" hidden><p>Semua kemajuan, bintang dan pencapaian akan dipadam.</p><button type="button" class="btn bad" id="setYes">Ya, padam dan mula semula</button></div></div>
@@ -3542,6 +3715,27 @@ function openSettings() {
         saveSettings();
         paintAudio();
     };
+    if (VOICE.ok)
+        el("setSuara").onchange = (e) => {
+            SET.suara = e.target.checked;
+            saveSettings();
+            if (SET.suara)
+                say("Pemandu suara dihidupkan.", "ms", true);
+            else
+                hush();
+        };
+    el("setTenaga").onchange = (e) => {
+        SET.tenaga = e.target.checked;
+        saveSettings();
+        applyTenagaSetting();
+    };
+    if (GYRO.ok)
+        el("setGyro").onchange = (e) => {
+            const box = e.target;
+            void setGyro(box.checked).then((on) => {
+                box.checked = on;
+            });
+        };
     el("setAch").onclick = () => openAch();
     el("setRefs").onclick = () => openRefs();
     el("setReset").onclick = () => {
@@ -3554,6 +3748,10 @@ function openSettings() {
 }
 function applyMiniSetting() {
     el("minimap").hidden = !SET.mini;
+}
+function applyTenagaSetting() {
+    el("chipEn").hidden = !SET.tenaga;
+    el("bMinum").hidden = !SET.tenaga;
 }
 function zoomBy(f) {
     SET.zoom = clamp(SET.zoom * f, 0.6, 1.7);
@@ -3668,6 +3866,8 @@ function openRefs() {
 //  Paksi: dunia 2D (x, y) → 3D (X, Z); Y ke atas. 1 unit 3D = 10 px dunia.
 // =====================================================================
 const THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+// Pemuat glTF versi bukan-modul yang sepadan dengan r128 (dimuat hanya jika MODELS3D berisi)
+const GLTF_URL = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";
 const K3 = 0.1;
 const LOWQ = window.matchMedia("(pointer: coarse)").matches;
 const CAM_NAMES = { back: "Belakang", eye: "Mata", top: "Atas" };
@@ -4706,86 +4906,22 @@ function ensureWorld() {
     }
     const lamps = [];
     let seed = 100;
+    // model asas yang akan diganti oleh model .glb dibina dalam kumpulan tersendiri
+    const repl = new Set(MODELS3D.filter((m) => m.scene === sc.id && m.replace).map((m) => m.replace));
+    const subs = new Map();
     for (const d of sc.m3) {
-        switch (d.k) {
-            case "bld":
-                addBuilding(g, d);
-                break;
-            case "palm":
-                addPalm(g, d.x, d.y, d.h);
-                break;
-            case "tree":
-                addTree(g, d.x, d.y, d.s, seed++);
-                break;
-            case "board":
-                addBoard(g, d.x, d.y, d.title, d.col);
-                break;
-            case "lamp":
-                addLamp(g, d.x, d.y, lamps);
-                break;
-            case "minaret":
-                addMinaret(g, d.x, d.y, d.h, d.col);
-                break;
-            case "bus":
-                addBus(g, d.x, d.y, d.w, d.d);
-                break;
-            case "tent":
-                addTent(g, d.x, d.y, d.w, d.d, d.col, d.hl);
-                break;
-            case "rocks":
-                addRocks(g, d.x, d.y, d.w, d.seed, d.col);
-                break;
-            case "wall":
-                addWall(g, d);
-                break;
-            case "pillar":
-                addPillar(g, d);
-                break;
-            case "cooler": {
-                const [X, Z] = P3(d.x, d.y);
-                g.add(mesh(new THREE.BoxGeometry(2.4, 1.6, 1.2), lam("#e9eef2"), X, 0.8, Z));
-                g.add(mesh(new THREE.BoxGeometry(2.42, 0.3, 1.22), lam("#3d6fb4"), X, 1.1, Z));
-                for (const dx of [-0.5, 0.5])
-                    g.add(mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.8, 10), lam("#9fc3e6", { transparent: true, opacity: 0.85 }), X + dx, 2.0, Z));
-                break;
+        let tg = g;
+        if (repl.has(d.k)) {
+            let sub = subs.get(d.k);
+            if (!sub) {
+                sub = new THREE.Group();
+                sub.name = "asas:" + d.k;
+                g.add(sub);
+                subs.set(d.k, sub);
             }
-            case "kaabah":
-                addKaabah(g);
-                break;
-            case "maqam":
-                addMaqam(g, d.x, d.y);
-                break;
-            case "arcade":
-                addArcade(g, d.r0, d.r1, d.h);
-                break;
-            case "gate":
-                addGate(g, d.x0, d.x1, d.y);
-                break;
-            case "green":
-                addGreen(g, d.x0, d.x1, d.y);
-                break;
-            case "skyline":
-                addSkyline(g);
-                break;
-            case "jamrah":
-                addJamrah(g, d.x, d.y, d.rx, d.ry);
-                break;
-            case "hill":
-                addHill(g, d.x, d.y, d.rx, d.ry, d.h);
-                break;
-            case "sign":
-                addSign(g, d.x, d.y, d.text);
-                break;
-            case "pole":
-                addPole(g, d.x, d.y);
-                break;
-            case "mountains":
-                addMountains(g, d.x0, d.y0, d.x1, d.y1, d.col, d.seed);
-                break;
-            case "stars":
-                addStarfield(g);
-                break;
+            tg = sub;
         }
+        addM3(tg, d, lamps, d.k === "tree" ? seed++ : seed);
     }
     const people = makePeople(Math.max(40, sc.npcs.length), g);
     const peb = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.17, 0), flat("#8d877a"), 300);
@@ -4796,6 +4932,158 @@ function ensureWorld() {
     BUILD_TEX = [];
     updatePeople(people, sc.npcs, true);
     R3.light = "";
+    loadModels(sc.id, g, subs);
+}
+function addM3(g, d, lamps, seed) {
+    switch (d.k) {
+        case "bld":
+            addBuilding(g, d);
+            break;
+        case "palm":
+            addPalm(g, d.x, d.y, d.h);
+            break;
+        case "tree":
+            addTree(g, d.x, d.y, d.s, seed);
+            break;
+        case "board":
+            addBoard(g, d.x, d.y, d.title, d.col);
+            break;
+        case "lamp":
+            addLamp(g, d.x, d.y, lamps);
+            break;
+        case "minaret":
+            addMinaret(g, d.x, d.y, d.h, d.col);
+            break;
+        case "bus":
+            addBus(g, d.x, d.y, d.w, d.d);
+            break;
+        case "tent":
+            addTent(g, d.x, d.y, d.w, d.d, d.col, d.hl);
+            break;
+        case "rocks":
+            addRocks(g, d.x, d.y, d.w, d.seed, d.col);
+            break;
+        case "wall":
+            addWall(g, d);
+            break;
+        case "pillar":
+            addPillar(g, d);
+            break;
+        case "cooler": {
+            const [X, Z] = P3(d.x, d.y);
+            g.add(mesh(new THREE.BoxGeometry(2.4, 1.6, 1.2), lam("#e9eef2"), X, 0.8, Z));
+            g.add(mesh(new THREE.BoxGeometry(2.42, 0.3, 1.22), lam("#3d6fb4"), X, 1.1, Z));
+            for (const dx of [-0.5, 0.5])
+                g.add(mesh(new THREE.CylinderGeometry(0.32, 0.32, 0.8, 10), lam("#9fc3e6", { transparent: true, opacity: 0.85 }), X + dx, 2.0, Z));
+            break;
+        }
+        case "kaabah":
+            addKaabah(g);
+            break;
+        case "maqam":
+            addMaqam(g, d.x, d.y);
+            break;
+        case "arcade":
+            addArcade(g, d.r0, d.r1, d.h);
+            break;
+        case "gate":
+            addGate(g, d.x0, d.x1, d.y);
+            break;
+        case "green":
+            addGreen(g, d.x0, d.x1, d.y);
+            break;
+        case "skyline":
+            addSkyline(g);
+            break;
+        case "jamrah":
+            addJamrah(g, d.x, d.y, d.rx, d.ry);
+            break;
+        case "hill":
+            addHill(g, d.x, d.y, d.rx, d.ry, d.h);
+            break;
+        case "sign":
+            addSign(g, d.x, d.y, d.text);
+            break;
+        case "pole":
+            addPole(g, d.x, d.y);
+            break;
+        case "mountains":
+            addMountains(g, d.x0, d.y0, d.x1, d.y1, d.col, d.seed);
+            break;
+        case "stars":
+            addStarfield(g);
+            break;
+    }
+}
+let gltfReady = null;
+const gltfCache = new Map();
+function loadGltfLib() {
+    if (THREE.GLTFLoader)
+        return Promise.resolve(true);
+    if (!gltfReady)
+        gltfReady = new Promise((res) => {
+            const s = document.createElement("script");
+            s.src = GLTF_URL;
+            s.async = true;
+            s.onload = () => res(true);
+            s.onerror = () => res(false);
+            document.head.appendChild(s);
+        });
+    return gltfReady;
+}
+function fetchModel(file) {
+    let p = gltfCache.get(file);
+    if (!p) {
+        p = loadGltfLib().then((ok) => new Promise((res) => {
+            if (!ok)
+                return res(null);
+            const L = new THREE.GLTFLoader();
+            L.load(file, (gl) => res(gl.scene), undefined, (e) => {
+                console.warn("Model 3D gagal dimuat:", file, e);
+                res(null);
+            });
+        }));
+        gltfCache.set(file, p);
+    }
+    return p;
+}
+function loadModels(id, g, subs) {
+    const list = MODELS3D.filter((m) => m.scene === id);
+    for (const m of list) {
+        void fetchModel(m.file).then((src) => {
+            // pemain mungkin sudah bertukar lokasi semasa model dimuat
+            if (!src || !R3.world || R3.world.group !== g)
+                return;
+            const obj = src.clone(true);
+            const [X, Z] = P3(m.x, m.y);
+            obj.position.set(X, 0, Z);
+            obj.rotation.y = ((m.rot ?? 0) * Math.PI) / 180;
+            obj.scale.setScalar(m.scale ?? 1);
+            obj.traverse((o) => {
+                const ms = o;
+                if (!ms.isMesh)
+                    return;
+                ms.castShadow = true;
+                ms.receiveShadow = true;
+                // renderer menggunakan output linear; kekalkan warna asal tekstur Blender
+                const mats = Array.isArray(ms.material) ? ms.material : [ms.material];
+                for (const mt of mats) {
+                    const mm = mt;
+                    if (mm.map)
+                        mm.map.encoding = THREE.LinearEncoding;
+                    if (mm.emissiveMap)
+                        mm.emissiveMap.encoding = THREE.LinearEncoding;
+                    mm.needsUpdate = true;
+                }
+            });
+            g.add(obj);
+            if (m.replace) {
+                const sub = subs.get(m.replace);
+                if (sub)
+                    sub.visible = false;
+            }
+        });
+    }
 }
 function applyLight3D(l) {
     if (!R3.scene || !R3.hemi || !R3.sun)
@@ -4930,6 +5218,66 @@ function initDrag3D() {
     };
     cv.addEventListener("pointerup", end);
     cv.addEventListener("pointercancel", end);
+}
+const GYRO = {
+    ok: typeof window.DeviceOrientationEvent !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+    on: false,
+    lastA: null,
+};
+function onOrient(e) {
+    if (e.alpha == null || e.beta == null)
+        return;
+    const a = (e.alpha * Math.PI) / 180;
+    const live = R3.active && C3.mode === "eye" && !modalOpen;
+    if (live && GYRO.lastA != null) {
+        // putar telefon ke kiri (alpha bertambah) = pandang ke kiri (yaw bertambah)
+        C3.yaw += wrapPi(a - GYRO.lastA);
+        // telefon tegak (beta ±90°) = pandang lurus; dongak/tunduk ikut kecondongan
+        if (window.innerHeight >= window.innerWidth)
+            C3.eyePitch = clamp(((e.beta - 90) * Math.PI) / 180, -0.7, 0.6);
+    }
+    GYRO.lastA = a;
+}
+async function setGyro(on, quiet = false) {
+    if (!GYRO.ok)
+        return false;
+    if (!on) {
+        window.removeEventListener("deviceorientation", onOrient);
+        GYRO.on = false;
+        SET.gyro = false;
+        saveSettings();
+        return false;
+    }
+    const perm = window.DeviceOrientationEvent.requestPermission;
+    if (perm) {
+        // iOS: kebenaran mesti diminta daripada tindakan pengguna
+        if (quiet) {
+            window.addEventListener("pointerdown", () => void setGyro(true), { once: true });
+            return false;
+        }
+        let res = "denied";
+        try {
+            res = await perm();
+        }
+        catch {
+            /* ditolak */
+        }
+        if (res !== "granted") {
+            toast("Kebenaran sensor gerakan ditolak. Giroskop tidak dapat digunakan.", "warn", 4500);
+            SET.gyro = false;
+            saveSettings();
+            return false;
+        }
+    }
+    if (!GYRO.on)
+        window.addEventListener("deviceorientation", onOrient);
+    GYRO.on = true;
+    GYRO.lastA = null;
+    SET.gyro = true;
+    saveSettings();
+    if (!quiet)
+        toast("Giroskop dihidupkan. Dalam paparan 3D, pilih kamera Mata dan gerakkan telefon untuk memandang sekeliling.", "info", 5500);
+    return true;
 }
 // ---------------------------------------------------------------------
 //  Kemas kini & lukis setiap bingkai
@@ -5229,6 +5577,8 @@ function newSave(name, gender) {
         scene: "miqat",
         lastTawaf: "",
         quiz: 0,
+        tenaga: 100,
+        air: CONFIG.tenaga.botol,
     };
 }
 function validSave(s) {
@@ -5256,6 +5606,8 @@ const T = {
     bumpCd: 0,
     pickTip: false,
     saveT: 0,
+    enWarn: 0,
+    minumCd: 0,
     hudT: 0,
     miniT: 0,
     running: false,
@@ -5317,6 +5669,7 @@ function advance() {
             later(() => banner(ch), 900);
         }
         nxt.step.onStart?.();
+        say(nxt.step.text, "ms", true);
     }
     renderMission();
     saveGame();
@@ -5409,6 +5762,9 @@ function travelTo(id) {
     const km = st && st.id.startsWith("bus_") ? (leg ? leg.km : "±7 km") : "";
     el("trKm").textContent = km ? `Jarak anggaran ${km}` : "";
     showTravel(scene.name, SCENE_NAMES[id], (st && TRAVEL_TIPS[st.id]) || "Perbanyakkan zikir dalam perjalanan.", () => loadScene(id), () => {
+        // berehat di dalam bas; air minuman disediakan
+        S.tenaga = Math.max(S.tenaga, 80);
+        S.air = CONFIG.tenaga.botol;
         if (curStep()?.travel === id)
             advance();
         toast(`Tiba di ${SCENE_NAMES[id]}.`, "info", 3000);
@@ -5477,6 +5833,11 @@ function actSolatTawaf() {
 }
 function actZamzam() {
     T.zamCd = 8;
+    S.tenaga = Math.min(100, S.tenaga + CONFIG.tenaga.teguk);
+    if (S.air < CONFIG.tenaga.botol) {
+        S.air = CONFIG.tenaga.botol;
+        later(() => toast("Botol air diisi semula dengan air Zamzam.", "info", 3000), 600);
+    }
     P.pose = "pray";
     T.poseT = 1;
     showDoa("zamzam");
@@ -5523,8 +5884,12 @@ function openCukur(kind) {
         });
     });
 }
+function restFull() {
+    S.tenaga = 100;
+    S.air = CONFIG.tenaga.botol;
+}
 function actTarwiyah() {
-    fadeDo("Bermalam di Mina", "Malam 9 Zulhijjah · berzikir & berehat", () => undefined, () => finishStep("mina_tarwiyah"));
+    fadeDo("Bermalam di Mina", "Malam 9 Zulhijjah · berzikir & berehat", restFull, () => finishStep("mina_tarwiyah"));
 }
 function openNafar() {
     openChoice("Khemah Maktab 87 · Mina", "Nafar awal atau nafar thani?", "<p>Kedua-duanya dibenarkan. Pilih satu untuk melihat perbezaannya.</p>", [
@@ -5542,7 +5907,7 @@ function openNafar() {
         },
     ], (i) => {
         S.flags.nafarThani = i === 1;
-        fadeDo("Bermalam di Mina", i === 0 ? "12 Zulhijjah · lontaran diulang, keluar sebelum Maghrib" : "12 & 13 Zulhijjah · lontaran diulang", () => undefined, () => finishStep("nafar"));
+        fadeDo("Bermalam di Mina", i === 0 ? "12 Zulhijjah · lontaran diulang, keluar sebelum Maghrib" : "12 & 13 Zulhijjah · lontaran diulang", restFull, () => finishStep("nafar"));
     });
 }
 function actDam() {
@@ -5584,7 +5949,7 @@ function actKhutbah() {
     });
 }
 function actMabitMuzdalifah() {
-    fadeDo("Bermalam di Muzdalifah", "Lepas tengah malam · 10 Zulhijjah", () => undefined, () => {
+    fadeDo("Bermalam di Muzdalifah", "Lepas tengah malam · 10 Zulhijjah", restFull, () => {
         toast("Mabit di Muzdalifah sempurna. Kamu boleh bertolak ke Mina.", "ok");
         finishStep("mabit_muz");
     });
@@ -6114,6 +6479,7 @@ function openCert() {
     });
 }
 function resetGame() {
+    hush();
     removeKey(CONFIG.saveKey);
     const name = S.name;
     const g = S.gender;
@@ -6219,6 +6585,58 @@ function collide(p, r, solids) {
         }
     }
 }
+// =====================================================================
+//  TENAGA & AIR (diilhamkan oleh pemantauan kecergasan simulator HajSim)
+// =====================================================================
+function heatFactor() {
+    const l = currentLight();
+    if (l === "night")
+        return 0.7;
+    if (l === "dusk")
+        return 1;
+    // Masjidil Haram berbumbung sebahagiannya dan lantai marmar mataf sejuk
+    return scene.id === "makkah" ? 1.15 : 1.7;
+}
+function updateTenaga(dt) {
+    T.minumCd -= dt;
+    if (!SET.tenaga)
+        return;
+    const k = CONFIG.tenaga;
+    const still = !P.moving && T.busy <= 0;
+    if (P.moving)
+        S.tenaga -= (T.running ? k.laju : k.jalan) * heatFactor() * dt;
+    else if (still || T.wukuf.praying)
+        S.tenaga += k.rehat * dt;
+    S.tenaga = clamp(S.tenaga, 0, 100);
+    // amaran sekali bagi setiap paras; diset semula selepas pulih
+    if (S.tenaga > 50)
+        T.enWarn = 0;
+    if (S.tenaga < 35 && T.enWarn < 1) {
+        T.enWarn = 1;
+        toast(S.air > 0
+            ? "Tenaga rendah. Tekan Minum (F) untuk meneguk air, dan berdiri diam untuk berehat."
+            : "Tenaga rendah dan botol kosong. Isi semula di tong air Zamzam, atau berdiri diam untuk berehat.", "warn", 5200);
+        say("Tenaga rendah. Minum air dan berehat.", "ms");
+    }
+    if (S.tenaga < 15 && T.enWarn < 2) {
+        T.enWarn = 2;
+        toast("Terlalu letih! Kamu tidak boleh berlari. Awas strok haba: berteduh, minum dan berehat dahulu.", "bad", 6000);
+    }
+}
+function actMinum() {
+    if (!started || !SET.tenaga || modalOpen || overlayBusy || T.minumCd > 0)
+        return;
+    if (S.air <= 0) {
+        toast("Botol air kosong. Isi semula di tong air Zamzam atau semasa menaiki bas.", "info", 4200);
+        return;
+    }
+    T.minumCd = 1.2;
+    S.air--;
+    S.tenaga = Math.min(100, S.tenaga + CONFIG.tenaga.teguk);
+    SND.play("pick");
+    floatText(P.x, P.y - 44, `+${CONFIG.tenaga.teguk} tenaga`);
+    refreshHUD();
+}
 function updatePlayer(dt) {
     const raw = getInput();
     const inp = R3.active ? input3D(raw, dt) : raw;
@@ -6226,8 +6644,10 @@ function updatePlayer(dt) {
     const blocked = T.busy > 0 || overlayBusy || modalOpen;
     if (T.wukuf.praying && mag > 0.3 && !blocked)
         stopWukuf("Wukuf dihentikan. Tekan BERDOA semula dan kekal diam.");
-    const wantRun = runToggle || shiftHeld;
-    let spd = blocked || T.wukuf.praying ? 0 : (wantRun ? CONFIG.runSpeed : CONFIG.walkSpeed) * mag;
+    const tired = SET.tenaga && S.tenaga < 15;
+    const wantRun = (runToggle || shiftHeld) && !tired;
+    const slow = !SET.tenaga ? 1 : tired ? 0.65 : S.tenaga < 35 ? 0.85 : 1;
+    const spd = blocked || T.wukuf.praying ? 0 : (wantRun ? CONFIG.runSpeed : CONFIG.walkSpeed) * mag * slow;
     const ox = P.x;
     const oy = P.y;
     if (spd > 0) {
@@ -6891,6 +7311,7 @@ function update(dt) {
         }
     }
     updatePlayer(dt);
+    updateTenaga(dt);
     updateTawaf(dt);
     updateSaie(dt);
     updateWukuf(dt);
@@ -6975,6 +7396,11 @@ function setupStart(saved) {
 function startGame(save) {
     SND.init();
     S = save;
+    // simpanan lama (sebelum ciri tenaga) tiada medan ini
+    if (typeof S.tenaga !== "number")
+        S.tenaga = 100;
+    if (typeof S.air !== "number")
+        S.air = CONFIG.tenaga.botol;
     started = true;
     applyOutfit();
     const st = curStep();
@@ -6989,9 +7415,12 @@ function startGame(save) {
     if (S.step === 0) {
         later(() => banner(CHAPTERS[0]), 500);
         later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
+        say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
     }
-    else
+    else {
         toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
+        say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+    }
     saveGame();
     if (SET.view3d)
         void set3D(true, true);
@@ -7005,7 +7434,10 @@ function boot(hot) {
     paintAudio();
     paintViewControls();
     applyMiniSetting();
+    applyTenagaSetting();
     initInput();
+    if (SET.gyro)
+        void setGyro(true, true);
     resize();
     window.addEventListener("resize", resize);
     scene = getScene("makkah");
@@ -7046,6 +7478,7 @@ window.__jh = {
         cam.y = y;
     },
     finish: () => advance(),
+    models: MODELS3D,
     C3,
     R3,
     set3D: (on) => set3D(on, true),
