@@ -32,6 +32,8 @@ interface PeopleInst {
 }
 interface PlayerRig {
   root: THREE.Group;
+  fallback: THREE.Group;
+  avatar: THREE.Group | null;
   body: THREE.Mesh;
   head: THREE.Mesh;
   hair: THREE.Mesh;
@@ -966,12 +968,27 @@ function makeRig(): PlayerRig {
   const ring = mesh(new THREE.TorusGeometry(0.8, 0.06, 6, 32), basic("#d9a83c"), 0, 0.04, 0, false);
   ring.rotation.x = Math.PI / 2;
   root.add(ring);
-  return { root, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+  const fallback = new THREE.Group();
+  fallback.add(body, head, hair, veil, cape, face, shoulder, armL, armR);
+  root.add(fallback);
+  const rig: PlayerRig = { root, fallback, avatar: null, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+  void fetchModel("models/jemaah-v1.glb").then((model) => {
+    if (!model) return; // Existing character stays playable on network/load failure.
+    const avatar = model.clone(true);
+    avatar.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+    });
+    avatar.visible = false;
+    rig.avatar = avatar;
+    root.add(avatar);
+  });
+  return rig;
 }
 function updateRig(dt: number): void {
   const r = R3.rig;
   if (!r) return;
-  r.root.visible = C3.mode !== "eye";
+  r.root.visible = C3.mode !== "eye" && !miqatPrivate();
   r.root.position.set(P.x * K3, P.moving ? Math.abs(Math.sin(P.walk)) * 0.07 : 0, P.y * K3);
   const target = Math.atan2(P.dx, P.dy);
   r.root.rotation.y += wrapPi(target - r.root.rotation.y) * Math.min(1, dt * 14);
@@ -1010,6 +1027,28 @@ function updateRig(dt: number): void {
   }
   r.armL.rotation.x += (la - r.armL.rotation.x) * Math.min(1, dt * 12);
   r.armR.rotation.x += (ra - r.armR.rotation.x) * Math.min(1, dt * 12);
+  const detailed = !!r.avatar && !fem && P.ihram;
+  r.fallback.visible = !detailed;
+  r.fallback.rotation.set(0, 0, 0);
+  r.fallback.scale.set(1, 1, 1);
+  if (r.avatar) {
+    r.avatar.visible = detailed;
+    const av = r.avatar;
+    const h = av.getObjectByName("Hair");
+    if (h) h.visible = !P.shaved;
+    const l = av.getObjectByName("ArmL"), rr = av.getObjectByName("ArmR");
+    if (l) l.rotation.x = r.armL.rotation.x;
+    if (rr) rr.rotation.x = r.armR.rotation.x;
+    const ll = av.getObjectByName("LegL"), rl = av.getObjectByName("LegR");
+    if (ll) ll.rotation.x = P.moving ? -la * 0.48 : 0;
+    if (rl) rl.rotation.x = P.moving ? la * 0.48 : 0;
+    const up = av.getObjectByName("UpperBody");
+    if (up) { up.rotation.x = 0; up.position.y = 1.02; }
+    av.scale.set(1, 1, 1);
+    av.position.y = 0;
+    applyMiqatPose3D(r, up, l, rr);
+  }
+  if (!detailed) applyMiqatFallbackPose3D(r);
 }
 
 function makeMarkers(sc: THREE.Scene): void {
@@ -1106,6 +1145,7 @@ function ensureWorld(): void {
   peb.frustumCulled = false;
   g.add(peb);
   R3.scene.add(g);
+  addMiqatWater(g);
   R3.world = { id: sc.id, group: g, people, peb, pebKey: -1, lamps, textures: BUILD_TEX };
   BUILD_TEX = [];
   updatePeople(people, sc.npcs, true);
