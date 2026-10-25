@@ -4,13 +4,15 @@
   "description": "Game pendidikan 2.5D (HTML + CSS + TypeScript vanila, tanpa pustaka luar). 8 bab · 22 tugasan · 5 lokasi: Miqat Bir Ali, Masjidil Haram & Mas'a, Mina, Arafah, Muzdalifah.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npx -y -p typescript@5.9.3 tsc -p tsconfig.json && node build.mjs",
+    "test": "npm run build && node tools/test-miqat.cjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/three": "^0.128.0",
+    "jsdom": "^26.1.0",
     "three": "^0.128.0"
   }
 }
