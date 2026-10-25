@@ -51,8 +51,8 @@ function miqatPanel(): HTMLElement {
   panel = document.createElement("section");
   panel.id = "miqatActivity";
   panel.setAttribute("aria-label", "Aktiviti persediaan ihram");
-  panel.style.cssText = "position:fixed;left:50%;top:110px;transform:translateX(-50%);width:min(360px,90vw);padding:16px;background:#153f35f5;color:white;border:1px solid #dcc583;border-radius:16px;z-index:45;box-shadow:0 8px 30px #0004;font:14px Nunito,sans-serif;pointer-events:auto";
-  panel.innerHTML = '<b id="miqatTitle"></b><p id="miqatStage" aria-live="polite"></p><progress id="miqatProgress" max="1" value="0" style="width:100%"></progress><p id="miqatNote" style="font-size:12px;opacity:.85"></p><button id="miqatNext" type="button">Seterusnya</button> <button id="miqatCancel" type="button">Hentikan</button>';
+  panel.style.cssText = "position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(360px,92vw);padding:10px 14px;background:#153f35f5;color:white;border:1px solid #dcc583;border-radius:16px;z-index:45;box-shadow:0 8px 30px #0004;font:14px Nunito,sans-serif;pointer-events:auto";
+  panel.innerHTML = '<b id="miqatTitle"></b><style>#miqatActivity p{margin:4px 0}#miqatActivity button{min-height:44px;padding:0 16px;border-radius:10px;border:0;background:#dcc583;color:#153f35;font:700 14px Nunito,sans-serif}</style><p id="miqatStage" aria-live="polite"></p><progress id="miqatProgress" max="1" value="0" style="width:100%"></progress><p id="miqatNote" style="font-size:12px;opacity:.85"></p><button id="miqatNext" type="button">Seterusnya</button> <button id="miqatCancel" type="button">Hentikan</button>';
   document.body.appendChild(panel);
   el("miqatNext").onclick = () => {
     const a = miqatActivity;
@@ -105,7 +105,7 @@ function startMiqatActivity(kind: MiqatAction): void {
   const point = MIQAT_POINTS[kind]; P.x = point.x; P.y = point.y;
   if (kind === "bath" || kind === "toilet") P.y = -100;
   P.dx = 0; P.dy = -1; P.pose = kind === "nails" ? "pray" : "stand";
-  if (kind === "prayer") { C3.mode = "back"; C3.yaw = 0.6; C3.dist = 5; C3.pitch = .45; }
+  if (kind === "prayer") { C3.mode = "back"; C3.yaw = 0.6; C3.dist = 9; C3.pitch = .35; }
   miqatPanel().hidden = false;
   el("miqatTitle").textContent = kind === "prayer" ? "Solat sunat ihram · dua rakaat" : MIQAT_ACTIONS[kind].title;
   el("miqatNote").textContent = kind === "prayer"

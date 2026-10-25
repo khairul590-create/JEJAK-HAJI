@@ -1590,12 +1590,15 @@ function update3D(dt: number): void {
   });
   // penanda sasaran & interaksi
   const t = started ? stepTarget() : null;
-  const show = !!t && SET.arrow;
-  for (const m of [R3.tRing, R3.tGem, R3.tBeam]) if (m) m.visible = show;
+  const show = !!t && SET.arrow && !miqatActivity;
+  const indoor = !!insideMiqat; // bilik kecil: gelang sahaja, tiada permata/tiang cahaya
+  if (R3.tRing) R3.tRing.visible = show;
+  if (R3.tGem) R3.tGem.visible = show && !indoor;
+  if (R3.tBeam) R3.tBeam.visible = show && !indoor;
   if (show && t && R3.tRing && R3.tGem && R3.tBeam) {
     const pulse = 1 + Math.sin(T.time * 3.2) * 0.08;
     R3.tRing.position.set(t.x * K3, 0.08, t.y * K3);
-    R3.tRing.scale.setScalar(pulse);
+    R3.tRing.scale.setScalar(pulse * (indoor ? 0.5 : 1));
     R3.tGem.position.set(t.x * K3, 4 + Math.sin(T.time * 2.4) * 0.35, t.y * K3);
     R3.tGem.rotation.y += dt * 1.6;
     R3.tBeam.position.set(t.x * K3, 8, t.y * K3);
