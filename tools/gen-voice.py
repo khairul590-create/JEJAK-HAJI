@@ -3,7 +3,7 @@
 
 Sebelum ini permainan guna Web Speech API — bunyi berbeza setiap peranti dan
 kedengaran seperti robot. Di sini setiap ayat dijana sekali menjadi fail MP3
-dengan suara tetap (Gemini TTS). Permainan hanya memainkan fail, jadi bunyi
+dengan suara tetap (ElevenLabs). Permainan hanya memainkan fail, jadi bunyi
 seragam pada semua peranti dan tiada API key pada pelayar.
 
 Guna:
@@ -11,12 +11,8 @@ Guna:
     python3 tools/gen-voice.py           # tulis klip yang belum ada
     python3 tools/gen-voice.py --force   # jana semula semua
 
-Guna kod TTS Gemini sedia ada dalam Hermes (`tools.tts_tool_providers`), jadi
-persona suara dan resolusi key ikut tetapan Hermes — skrip ini tidak menulis
-sendiri pelanggan Gemini.
-
-Nota: doa Arab sengaja TANPA persona Bahasa Melayu, supaya bacaan Arab
-kekal bacaan Arab.
+Guna kod TTS ElevenLabs sedia ada dalam Hermes (`tools.tts_tool_providers`).
+Suara: Alice (BM) dan Habibah (doa Arab) — pilihan pemilik.
 """
 
 from __future__ import annotations
@@ -24,7 +20,6 @@ from __future__ import annotations
 import json
 import os
 import pathlib
-import re
 import subprocess
 import sys
 import time
@@ -33,9 +28,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 AUDIO = ROOT / "audio"
 HERMES = pathlib.Path("/root/.hermes/hermes-agent")
 MS, AR = "ms", "ar"
-# Quota Tier 1 Gemini TTS: 10 generate/min. Gen ~5s + jeda 4s = ~7/min,
-# bawah had. Naikkan bila quota naik.
-DELAY = 4.0
+VOICE = {MS: "Xb7hH8MSUJpSbSDYk0k2", AR: "w4LX7bK479eHGM1k15Em"}  # Alice, Habibah
+MODEL = "eleven_multilingual_v2"
+DELAY = 0.5
 RETRY_MAX = 4
 
 DUMP = r"""
@@ -72,40 +67,21 @@ def texts() -> dict[str, tuple[str, str]]:
     return {k: (v[0], v[1]) for k, v in raw.items()}
 
 
-def load_hermes_config() -> dict:
-    """Konfigurasi TTS Gemini ikut config.yaml Hermes (bukan tetapan keras)."""
-    cfg_path = pathlib.Path("/root/.hermes/config.yaml")
-    try:
-        import yaml
-
-        raw = yaml.safe_load(cfg_path.read_text()) or {}
-    except Exception:
-        raw = {}
-    return dict(raw.get("tts", {}).get("gemini", {})) or {
-        "model": "gemini-2.5-flash-preview-tts",
-        "voice": "Aoede",
-        "audio_tags": False,
-    }
-
-
 def ensure_key() -> None:
-    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+    if os.environ.get("ELEVENLABS_API_KEY"):
         return
     for line in pathlib.Path("/root/.hermes/.env").read_text().splitlines():
-        if line.startswith(("GEMINI_API_KEY=", "GOOGLE_API_KEY=")):
-            os.environ[line.split("=", 1)[0]] = line.split("=", 1)[1].strip()
+        if line.startswith("ELEVENLABS_API_KEY="):
+            os.environ["ELEVENLABS_API_KEY"] = line.split("=", 1)[1].strip()
             return
-    sys.exit("GEMINI_API_KEY tiada — set dalam /root/.hermes/.env")
+    sys.exit("ELEVENLABS_API_KEY tiada — set dalam /root/.hermes/.env")
 
 
 def main() -> int:
     force = "--force" in sys.argv
     sys.path.insert(0, str(HERMES))
     ensure_key()
-    from tools.tts_tool_providers import _generate_gemini_tts  # noqa: E402
-
-    gemini = load_hermes_config()
-    ar_cfg = {k: v for k, v in gemini.items() if k != "persona_prompt_file"}
+    from tools.tts_tool_providers import _generate_elevenlabs  # noqa: E402
 
     AUDIO.mkdir(exist_ok=True)
     todo = {k: v for k, v in texts().items() if force or not (AUDIO / f"{k}.mp3").exists()}
@@ -113,22 +89,18 @@ def main() -> int:
 
     def one(item: tuple[str, tuple[str, str]]) -> str | None:
         key, (lang, text) = item
-        cfg = ar_cfg if lang == AR else gemini
+        cfg = {"elevenlabs": {"voice_id": VOICE[lang], "model_id": MODEL}}
         for attempt in range(RETRY_MAX + 1):
             try:
-                _generate_gemini_tts(text, str(AUDIO / f"{key}.mp3"), cfg)
+                _generate_elevenlabs(text, str(AUDIO / f"{key}.mp3"), cfg)
                 return None
             except Exception as exc:  # jangan senyap — senarai gagal dibentang
                 msg = str(exc)
                 if attempt == RETRY_MAX:
                     return f"{key}: {type(exc).__name__} {msg[:200]}"
-                # 429 = tingkap seminit Tier 1; wajib tunggu penuh. Ralat
-                # lain (400 model keluar teks, respon cacat) cuba semula segera.
-                m = re.search(r"retry in ([\d.]+)s", msg)
-                if m:
-                    wait = float(m.group(1)) + 1
-                else:
-                    wait = 65.0 if "429" in msg else 3.0
+                if "402" in msg or "401" in msg:  # pelan/key — cuba semula sia-sia
+                    return f"{key}: {msg[:200]}"
+                wait = 10.0 if "429" in msg else 3.0
                 print(f"  {key}: {type(exc).__name__}, cuba semula dalam {wait:.0f}s")
                 time.sleep(wait)
         return f"{key}: gagal selepas {RETRY_MAX} cubaan"
