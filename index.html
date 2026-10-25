@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jejak Haji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Baloo+Bhaijaan+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--APP-->
+<div id="app">
+  <canvas id="world3d" hidden aria-hidden="true"></canvas>
+  <canvas id="world" aria-label="Dunia simulasi haji"></canvas>
+
+  <div class="hud pre" id="hud">
+    <header class="topbar">
+      <div class="profile panel">
+        <canvas id="avatar" width="96" height="96" aria-hidden="true"></canvas>
+        <div class="pmeta">
+          <div class="pname" id="pName">Ahmad</div>
+          <div class="ptask" id="pTask">Tugasan 1/22</div>
+          <div class="pbar"><i id="pBar"></i></div>
+        </div>
+        <div class="chips">
+          <span class="chip" title="Bintang ganjaran"><i class="ic-star" data-ic="star"></i><b id="cStars">0</b></span>
+          <span class="chip" title="Batu untuk melontar"><i class="ic-peb" data-ic="pebble"></i><b id="cPebbles">0</b></span>
+        </div>
+      </div>
+      <nav class="tools" aria-label="Menu">
+        <button class="tool t3d" id="t3d" type="button" aria-pressed="false"><span>Paparan 3D</span></button>
+        <button class="tool" id="tMap" type="button" data-ic="map"><span>Peta</span></button>
+        <button class="tool" id="tGuide" type="button" data-ic="book"><span>Panduan</span></button>
+        <button class="tool" id="tAch" type="button" data-ic="trophy"><span>Pencapaian</span></button>
+        <button class="tool" id="tAudio" type="button"><span>Audio</span></button>
+        <button class="tool" id="tSet" type="button" data-ic="gear"><span>Tetapan</span></button>
+      </nav>
+    </header>
+
+    <section class="mission panel" id="mission" aria-label="Misi">
+      <div class="m-head">
+        <div class="m-num" id="mNum">1</div>
+        <div class="m-ht"><div class="m-title" id="mTitle"></div><div class="m-date" id="mDate"></div></div>
+        <button class="m-close" id="mClose" type="button" aria-label="Tutup misi" data-ic="close"></button>
+      </div>
+      <ol class="m-list" id="mList"></ol>
+      <div class="m-now"><span>Sedang dilakukan</span><p id="mNow"></p></div>
+      <div class="m-btns"><button id="mRead" type="button">Baca penerangan</button><button id="mAll" type="button">Semua bab</button></div>
+    </section>
+
+    <div class="center">
+      <div class="date-pill" id="datePill">Sebelum 8 Zulhijjah</div>
+      <div class="pcard" id="pCard">
+        <div class="pc-title" id="pcTitle"></div>
+        <div class="pc-count" id="pcCount" hidden></div>
+        <div class="pc-bar" id="pcBarWrap"><i id="pcFill"></i></div>
+        <div class="pc-sub" id="pcSub"></div>
+        <div class="pc-tag" id="pcTag" hidden></div>
+      </div>
+      <div class="toasts" id="toasts" aria-live="polite"></div>
+    </div>
+
+    <aside class="minimap panel" id="minimap" aria-label="Peta mini">
+      <div class="mm-head"><span>Peta mini</span><b id="mmScene"></b></div>
+      <canvas id="mini"></canvas>
+    </aside>
+
+    <div class="controls">
+      <div class="joy" id="joy" aria-label="Kayu bedik untuk bergerak"><div class="knob" id="knob"></div></div>
+      <div class="keyhint" id="keyhint">WASD / anak panah: jalan · Shift: laju · E / Space: interaksi · roda tetikus: zum</div>
+      <div class="rctl">
+        <div class="smalls">
+          <button class="sbtn" id="bMisi" type="button" data-ic="list"><span>Misi</span></button>
+          <button class="sbtn" id="bRun" type="button" aria-pressed="false" data-ic="fast"><span>Laju</span></button>
+          <button class="sbtn" id="bCam" type="button" hidden><span>Kamera</span></button>
+        </div>
+        <div class="zooms">
+          <button class="zbtn" id="bZin" type="button" aria-label="Zum masuk" data-ic="plus"></button>
+          <button class="zbtn" id="bZout" type="button" aria-label="Zum keluar" data-ic="minus"></button>
+        </div>
+        <button class="act" id="bAct" type="button" aria-label="Interaksi"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="doa" id="doa" hidden role="status">
+    <button class="doa-x" id="doaX" type="button" aria-label="Tutup kad doa" data-ic="close"></button>
+    <div class="doa-t" id="doaT"></div>
+    <div class="doa-ar" id="doaAr" dir="rtl" lang="ar"></div>
+    <div class="doa-rumi" id="doaRumi"></div>
+    <div class="doa-mk" id="doaMk"></div>
+    <div class="doa-src" id="doaSrc"></div>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+      <div class="sh-head"><span class="sh-kick" id="shKick"></span><h2 id="shTitle"></h2></div>
+      <div class="sh-body" id="shBody"></div>
+      <div class="sh-btns" id="shBtns"></div>
+    </div>
+  </div>
+
+  <div class="fade" id="fade" hidden><div class="fade-t" id="fadeT"></div><div class="fade-s" id="fadeS"></div></div>
+
+  <div class="travel" id="travel" hidden>
+    <div class="tr-sky"></div>
+    <div class="tr-road">
+      <div class="tr-bus" id="trBus">
+        <svg viewBox="0 0 120 56" aria-hidden="true"><rect x="4" y="6" width="112" height="38" rx="7" fill="#f6f5ef" stroke="#0f4636" stroke-width="2"/><rect x="4" y="30" width="112" height="6" fill="#16634c"/><rect x="4" y="36" width="112" height="2" fill="#d9a83c"/><g fill="#2f4a5a"><rect x="12" y="12" width="14" height="12" rx="2"/><rect x="30" y="12" width="14" height="12" rx="2"/><rect x="48" y="12" width="14" height="12" rx="2"/><rect x="66" y="12" width="14" height="12" rx="2"/><rect x="84" y="12" width="14" height="12" rx="2"/><rect x="102" y="12" width="10" height="16" rx="2"/></g><circle cx="28" cy="46" r="7" fill="#1e1e1e"/><circle cx="92" cy="46" r="7" fill="#1e1e1e"/><circle cx="28" cy="46" r="2.5" fill="#9a9a9a"/><circle cx="92" cy="46" r="2.5" fill="#9a9a9a"/></svg>
+      </div>
+    </div>
+    <div class="tr-ft"><span id="trFrom"></span><i>→</i><span id="trTo"></span></div>
+    <div class="tr-km" id="trKm"></div>
+    <p class="tr-tip" id="trTip"></p>
+  </div>
+
+  <div class="start" id="start">
+    <form class="start-card" id="stForm" autocomplete="off">
+      <div class="st-kick" id="stKick">Simulasi Haji Tamattu'</div>
+      <h1 class="st-title" id="stTitle">Jejak Haji</h1>
+      <p class="st-lede">Ikuti perjalanan haji dari miqat hingga tawaf wada': tawaf tujuh pusingan, saie Safa–Marwah, wukuf di Arafah, mabit di Muzdalifah dan melontar di Mina. Main dalam paparan 2D atau 3D.</p>
+      <label class="st-l" for="inName">Nama jemaah</label>
+      <input id="inName" name="inName" maxlength="16" value="Ahmad" spellcheck="false">
+      <div class="st-l" id="gLbl">Jantina</div>
+      <div class="st-g" role="radiogroup" aria-labelledby="gLbl">
+        <button class="gopt" id="gL" type="button" role="radio" aria-checked="true"><canvas id="gLc" width="120" height="120"></canvas><span>Lelaki</span></button>
+        <button class="gopt" id="gP" type="button" role="radio" aria-checked="false"><canvas id="gPc" width="120" height="120"></canvas><span>Perempuan</span></button>
+      </div>
+      <div class="st-btns">
+        <button class="btn primary" id="stGo" type="button">Mula perjalanan</button>
+        <button class="btn ghost" id="stCont" type="button" hidden>Sambung</button>
+      </div>
+      <div class="st-stats" id="stStats"></div>
+      <div class="st-credit" id="stCredit"></div>
+    </form>
+  </div>
+</div>
+<!--/APP-->
+<script src="dist/main.js"></script>
+</body>
+</html>

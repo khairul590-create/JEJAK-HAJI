@@ -1,0 +1,16 @@
+{
+  "name": "jejak-haji",
+  "version": "1.0.0",
+  "description": "Game pendidikan 2.5D (HTML + CSS + TypeScript vanila, tanpa pustaka luar). 8 bab · 22 tugasan · 5 lokasi: Miqat Bir Ali, Masjidil Haram & Mas'a, Mina, Arafah, Muzdalifah.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/three": "^0.128.0",
+    "three": "^0.128.0"
+  }
+}

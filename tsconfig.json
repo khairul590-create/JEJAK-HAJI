@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "outDir": "build/js",
+    "rootDir": "src",
+    "moduleDetection": "legacy",
+    "removeComments": false,
+    "skipLibCheck": true,
+    "types": ["three"]
+  },
+  "files": [
+    "src/00-config.ts",
+    "src/01-util.ts",
+    "src/02-draw.ts",
+    "src/03-scenes.ts",
+    "src/04-steps.ts",
+    "src/05-ui.ts",
+    "src/06-game.ts",
+    "src/07-three.ts"
+  ]
+}
