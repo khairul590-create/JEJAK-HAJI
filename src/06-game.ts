@@ -135,7 +135,7 @@ function advance(): void {
       later(() => banner(ch), 900);
     }
     nxt.step.onStart?.();
-    say(nxt.step.text, "ms", true);
+    sayStep(nxt.step);
   }
   renderMission();
   saveGame();
@@ -1070,7 +1070,7 @@ function updateTenaga(dt: number): void {
       "warn",
       5200
     );
-    say("Tenaga rendah. Minum air dan berehat.", "ms");
+    sayClip("tenaga", "Tenaga rendah. Minum air dan berehat.", "ms");
   }
   if (S.tenaga < 15 && T.enWarn < 2) {
     T.enWarn = 2;
@@ -1875,10 +1875,11 @@ function startGame(save: Save): void {
   if (S.step === 0) {
     later(() => banner(CHAPTERS[0]), 500);
     later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
-    say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
+    // Nama murid kekal pada skrin; audio hanya salam kemudian arahan langkah.
+    sayClip("salam", "Assalamualaikum", "ms", true, () => sayStep(curStep()));
   } else {
     toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
-    say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+    sayClip("selamat-kembali", "Selamat kembali", "ms", true, () => sayStep(curStep()));
   }
   saveGame();
   if (SET.view3d) void set3D(true, true);

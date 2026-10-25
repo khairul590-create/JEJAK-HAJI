@@ -2947,13 +2947,20 @@ function saveSettings() {
     saveJSON(CONFIG.settingsKey, SET);
 }
 // ---------------------------------------------------------------------
-//  PEMANDU SUARA (Web Speech API — suara bergantung pada peranti)
+//  PEMANDU SUARA
+//  Bunyi utama: fail MP3 dalam folder audio/ (dijana sekali oleh
+//  tools/gen-voice.py) — ms-MY-OsmanNeural untuk Bahasa Melayu dan
+//  ar-SA-HamedNeural untuk doa. Seragam pada semua peranti.
+//  Simpanan: Web Speech API, hanya dipakai bila fail tak dapat dimain
+//  (contoh buka fail dari cakera tanpa internet).
 // ---------------------------------------------------------------------
 const VOICE = {
     ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined",
     ms: null,
     ar: null,
     picked: false,
+    base: "audio/",
+    el: null,
 };
 function pickVoices() {
     if (!VOICE.ok)
@@ -2972,33 +2979,67 @@ if (VOICE.ok) {
     window.speechSynthesis.addEventListener?.("voiceschanged", pickVoices);
 }
 function speechOn() {
-    return VOICE.ok && SET.suara && SET.sound;
+    return SET.suara && SET.sound;
 }
-function say(text, lang = "ms", flush = false) {
-    if (!speechOn() || !text)
+function sayWeb(text, lang = "ms") {
+    if (!VOICE.ok || !text)
         return;
     if (!VOICE.picked)
         pickVoices();
-    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ", "));
+    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ","));
     const v = lang === "ar" ? VOICE.ar : VOICE.ms;
     if (v)
         u.voice = v;
     u.lang = v ? v.lang : lang === "ar" ? "ar-SA" : "ms-MY";
     u.rate = lang === "ar" ? 0.85 : 1;
-    if (flush)
-        window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
 }
+/**
+ * Bunyikan klip MP3 mengikut kunci fail (audio/<kunci>.mp3). Kalau fail
+ * gagal dimain, jatuh balik ke Web Speech supaya murid tetap dengar arahan.
+ * `then` dijalankan bila klip habis — untuk susulan, contoh: doa Arab
+ * kemudian maksudnya.
+ */
+function sayClip(key, text, lang = "ms", flush = false, then) {
+    if (!speechOn() || !key)
+        return;
+    if (flush)
+        hush();
+    if (!VOICE.el) {
+        VOICE.el = document.createElement("audio");
+        VOICE.el.preload = "auto";
+        document.body.appendChild(VOICE.el);
+    }
+    const a = VOICE.el;
+    let done = false;
+    const finish = (next) => {
+        if (done)
+            return;
+        done = true;
+        a.onerror = null;
+        a.onended = null;
+        next?.();
+    };
+    const fallback = () => finish(() => { sayWeb(text, lang); then?.(); });
+    a.onerror = fallback;
+    a.onended = () => finish(then);
+    a.src = VOICE.base + key + ".mp3";
+    a.play().catch(fallback);
+}
+function sayStep(s) {
+    if (s)
+        sayClip(s.id, s.text, "ms", true);
+}
 function hush() {
+    if (VOICE.el) {
+        VOICE.el.pause();
+        VOICE.el.currentTime = 0;
+    }
     if (VOICE.ok)
         window.speechSynthesis.cancel();
 }
-function sayDoa(d, flush = true) {
-    if (VOICE.ar)
-        say(d.ar, "ar", flush);
-    else
-        say(d.rumi, "ms", flush);
-    say("Maksudnya: " + d.makna);
+function sayDoa(key, d, flush = true) {
+    sayClip(key + "-ar", d.ar, "ar", flush, () => sayClip(key + "-ms", "Maksudnya: " + d.makna, "ms"));
 }
 let lastToast = { text: "", t: 0 };
 function toast(text, kind = "info", ms = 4800) {
@@ -3047,7 +3088,7 @@ function showDoa(key, auto = false) {
     window.clearTimeout(doaTimer);
     doaTimer = window.setTimeout(hideDoa, 11000);
     curDoa = key;
-    sayDoa(d, false);
+    sayDoa(key, d, false);
 }
 let curDoa = "";
 function hideDoa() {
@@ -3456,10 +3497,10 @@ function initInput() {
         if (!d)
             return;
         if (!speechOn()) {
-            toast(VOICE.ok ? "Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa." : "Pelayar ini tidak menyokong pemandu suara.", "info", 4000);
+            toast("Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa.", "info", 4000);
             return;
         }
-        sayDoa(d);
+        sayDoa(curDoa, d);
     });
     el("bMinum").addEventListener("click", () => {
         SND.init();
@@ -3677,7 +3718,7 @@ function openSettings() {
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
 <label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
-${VOICE.ok ? `<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>` : ""}
+<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
 ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
@@ -3716,15 +3757,14 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
         saveSettings();
         paintAudio();
     };
-    if (VOICE.ok)
-        el("setSuara").onchange = (e) => {
-            SET.suara = e.target.checked;
-            saveSettings();
-            if (SET.suara)
-                say("Pemandu suara dihidupkan.", "ms", true);
-            else
-                hush();
-        };
+    el("setSuara").onchange = (e) => {
+        SET.suara = e.target.checked;
+        saveSettings();
+        if (SET.suara)
+            sayClip("suara-on", "Pemandu suara dihidupkan.", "ms", true);
+        else
+            hush();
+    };
     el("setTenaga").onchange = (e) => {
         SET.tenaga = e.target.checked;
         saveSettings();
@@ -5670,7 +5710,7 @@ function advance() {
             later(() => banner(ch), 900);
         }
         nxt.step.onStart?.();
-        say(nxt.step.text, "ms", true);
+        sayStep(nxt.step);
     }
     renderMission();
     saveGame();
@@ -6617,7 +6657,7 @@ function updateTenaga(dt) {
         toast(S.air > 0
             ? "Tenaga rendah. Tekan Minum (F) untuk meneguk air, dan berdiri diam untuk berehat."
             : "Tenaga rendah dan botol kosong. Isi semula di tong air Zamzam, atau berdiri diam untuk berehat.", "warn", 5200);
-        say("Tenaga rendah. Minum air dan berehat.", "ms");
+        sayClip("tenaga", "Tenaga rendah. Minum air dan berehat.", "ms");
     }
     if (S.tenaga < 15 && T.enWarn < 2) {
         T.enWarn = 2;
@@ -7416,11 +7456,12 @@ function startGame(save) {
     if (S.step === 0) {
         later(() => banner(CHAPTERS[0]), 500);
         later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
-        say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
+        // Nama murid kekal pada skrin; audio hanya salam kemudian arahan langkah.
+        sayClip("salam", "Assalamualaikum", "ms", true, () => sayStep(curStep()));
     }
     else {
         toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
-        say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+        sayClip("selamat-kembali", "Selamat kembali", "ms", true, () => sayStep(curStep()));
     }
     saveGame();
     if (SET.view3d)
