@@ -1,0 +1,16 @@
+{
+  "name": "jejak-haji-rombongan",
+  "private": true,
+  "description": "Pelayan rombongan berbilang pemain Jejak Haji (Cloudflare Workers + Durable Objects)",
+  "scripts": {
+    "siap": "node siap.mjs",
+    "dev": "node siap.mjs && wrangler dev",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261023.1",
+    "typescript": "5.9.3",
+    "wrangler": "^4.153.0"
+  }
+}

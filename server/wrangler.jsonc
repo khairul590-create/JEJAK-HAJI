@@ -1,0 +1,19 @@
+// Pelayan rombongan + fail game (lihat docs/ROMBONGAN.md)
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jejak-haji",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // fail game disalin ke public/ oleh .github/workflows/cloudflare.yml (atau `npm run siap` secara tempatan)
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/ws/*"]
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "ROMBONGAN", "class_name": "Rombongan" }]
+  },
+  // pelan Percuma Cloudflare: Durable Objects mesti berasaskan SQLite
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Rombongan"] }],
+  "observability": { "enabled": true }
+}

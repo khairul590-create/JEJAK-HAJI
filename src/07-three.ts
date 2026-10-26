@@ -53,6 +53,7 @@ interface World3 {
   id: SceneId;
   group: THREE.Group;
   people: PeopleInst;
+  rakan: PeopleInst; // ahli rombongan (12-rombongan.ts)
   peb: THREE.InstancedMesh;
   pebKey: number;
   lamps: THREE.Vector3[];
@@ -1908,12 +1909,13 @@ function ensureWorld(): void {
     addM3(tg, d, lamps, d.k === "tree" ? seed++ : seed);
   }
   const people = makePeople(Math.max(40, sc.npcs.length), g);
+  const rakan = makePeople(60, g);
   const peb = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.17, 0), flat("#8d877a"), 300);
   peb.frustumCulled = false;
   g.add(peb);
   R3.scene.add(g);
   addMiqatWater(g);
-  R3.world = { id: sc.id, group: g, people, peb, pebKey: -1, lamps, textures: BUILD_TEX };
+  R3.world = { id: sc.id, group: g, people, rakan, peb, pebKey: -1, lamps, textures: BUILD_TEX };
   BUILD_TEX = [];
   updatePeople(people, sc.npcs, true);
   R3.light = "";
@@ -2322,6 +2324,11 @@ function update3D(dt: number): void {
   const colors = R3.colorT <= 0;
   if (colors) R3.colorT = 0.6;
   updatePeople(w.people, scene.npcs, colors);
+  // rakan rombongan: tiada kos lukisan apabila main seorang
+  const rk = romNpcs();
+  w.rakan.blob.visible = rk.length > 0;
+  for (const m of Object.values(w.rakan.meshes)) m.visible = rk.length > 0;
+  if (rk.length) updatePeople(w.rakan, rk, true);
   updateRig(dt);
   // batu di tanah
   let alive = 0;
@@ -2487,6 +2494,7 @@ function drawOverlay3D(): void {
       ctx.fillText(S.name, s.x, s.y + 0.5);
     }
   }
+  romTags3D();
   const t = stepTarget();
   if (t && SET.arrow) {
     const dist = Math.hypot(t.x - P.x, t.y - P.y);

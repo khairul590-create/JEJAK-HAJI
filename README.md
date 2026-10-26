@@ -22,6 +22,7 @@ build.mjs         gabung semuanya menjadi satu fail HTML
 dist/jejak-haji.html   ← fail siap main (satu fail sahaja)
 models/           model 3D .glb daripada Blender (Kaabah) + fail sumber .blend
 blender/          skrip Blender yang menjana model (kaabah.py, characters.py, kartun.py)
+server/           pelayan Rombongan (Cloudflare Worker + Durable Objects) — docs/ROMBONGAN.md
 docs/GAME-DOC.md  dokumen reka bentuk 1 muka surat: objektif, gelung permainan, gaya, had prestasi
 docs/BLENDER.md   panduan membina model & render dengan Blender
 ```
@@ -65,6 +66,9 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
 - **Saie 3D:** dewan Mas'a beratap dengan dinding gerbang dua tingkat, tiang berkepala emas, siling berlampu, zon lampu
   hijau, papan tanda KE MARWAH / KE SAFA, anak panah biru di lantai mengikut arah perjalanan, penunjuk **ARAH KAABAH** di
   bukit (BERDOA menghadapkan jemaah ke Kaabah) dan jalur kemajuan Safa–Marwah di sebelah kanan skrin.
+- **Rombongan (berbilang pemain):** pensyarah mencipta rombongan dan berkongsi kod. Sehingga 60 jemaah nampak avatar rakan
+  (2D, 3D, peta mini), bersembang dengan frasa pantas, dan mengikut ketua (umum, panggil berkumpul, senarai lokasi & langkah
+  setiap jemaah). Pelayan: Cloudflare Workers + Durable Objects dalam `server/`. Lihat [docs/ROMBONGAN.md](docs/ROMBONGAN.md).
 - **Giroskop:** di telefon, gerakkan telefon untuk memandang sekeliling dalam kamera Mata 3D (Tetapan).
 - **Model Blender (.glb):** model 3D luaran boleh menggantikan model asas. Lihat [docs/BLENDER.md](docs/BLENDER.md).
   Kaabah dalam paparan 3D kini dibina dengan Blender oleh `blender/kaabah.py` (`models/kaabah.glb`, sumber `models/kaabah.blend`).

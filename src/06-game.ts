@@ -1479,6 +1479,7 @@ function render(): void {
   const list: Drawable[] = [];
   for (const pr of scene.props) list.push(pr);
   for (const n of scene.npcs) if (inView(n.p.x, n.p.y)) list.push({ y: n.p.y, draw: (c) => drawPerson(c, n.p) });
+  romDraw2D(list); // rakan rombongan (12-rombongan.ts)
   if (started)
     list.push({
       y: P.y,
@@ -1538,6 +1539,7 @@ function render(): void {
   ctx.globalAlpha = 1;
   if (started) {
     drawNameTag();
+    romTags2D();
     if (target && SET.arrow) drawArrow(target);
     const hint = dirHint();
     if (hint) drawDirHint(hint);
@@ -2043,6 +2045,7 @@ function drawMini(): void {
     circ(mctx, t.x, t.y, 6 / s);
     mctx.stroke();
   }
+  romMini(mctx, s);
   mctx.fillStyle = "#2f7de0";
   mctx.strokeStyle = "#ffffff";
   mctx.lineWidth = 1.6 / s;
@@ -2145,6 +2148,7 @@ function update(dt: number): void {
   // geser kamera sedikit ke utara kerana HUD atas lebih tebal daripada kawalan bawah
   cam.y = lerp(cam.y, P.y - (H * 0.08) / cam.zoom, Math.min(1, dt * 6));
   updateTour(dt);
+  updateRombongan(dt);
   update3D(dt);
 
   T.hudT -= dt;
@@ -2239,6 +2243,7 @@ function startGame(save: Save): void {
     sayClip("selamat-kembali", "Selamat kembali", "ms", true, () => sayStep(curStep()));
   }
   saveGame();
+  romSelepasMula();
   if (SET.view3d) void set3D(true, true);
   else if (S.step < 3) later(() => toast("Cuba butang 3D di atas untuk paparan 3D. Pilih kamera Mata untuk berjalan seperti jemaah sebenar.", "info", 6500), 9000);
 }
@@ -2253,6 +2258,7 @@ function boot(hot: Partial<Save> | null): void {
   applyTenagaSetting();
   initInput();
   initTour();
+  initRombongan();
   if (SET.gyro) void setGyro(true, true);
   resize();
   window.addEventListener("resize", resize);
@@ -2287,6 +2293,7 @@ else boot((HOT?.data as Partial<Save>) ?? null);
   get sc() {
     return scene;
   },
+  rom: ROM,
   step: () => curStep()?.id,
   tp: (x: number, y: number) => {
     P.x = x;

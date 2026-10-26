@@ -21,6 +21,10 @@ const CONFIG = {
     teguk: 25, // tambahan tenaga bagi setiap teguk air
     botol: 4, // bilangan teguk dalam botol penuh
   },
+  // Pelayan Rombongan (berbilang pemain), contohnya "https://jejak-haji.NAMA.workers.dev".
+  // Kosong = laman yang sama (apabila game dihos oleh pelayan rombongan di Cloudflare).
+  // Lihat docs/ROMBONGAN.md.
+  rombongan: "",
 };
 
 // ---------------------------------------------------------------------

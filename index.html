@@ -37,6 +37,7 @@
         <button class="tool" id="tGuide" type="button" data-ic="book"><span>Panduan</span></button>
         <button class="tool" id="tAch" type="button" data-ic="trophy"><span>Pencapaian</span></button>
         <button class="tool" id="tAudio" type="button"><span>Audio</span></button>
+        <button class="tool" id="tRom" type="button" data-ic="users"><span>Rombongan</span><b class="sb-n" id="romN" hidden>0</b></button>
         <button class="tool" id="tSet" type="button" data-ic="gear"><span>Tetapan</span></button>
       </nav>
     </header>
@@ -89,6 +90,13 @@
       <span class="ss-n" id="tdN">0/7</span>
     </aside>
 
+    <aside class="rom-chat panel" id="romChat" hidden aria-label="Sembang rombongan">
+      <div class="rc-h"><span id="rcHead"></span><button type="button" id="rcClose" aria-label="Tutup sembang" data-ic="close"></button></div>
+      <div class="rc-list" id="rcList" aria-live="polite"></div>
+      <div class="rc-frasa" id="rcFrasa"></div>
+      <form class="rc-form" id="rcForm"><input id="rcIn" maxlength="160" autocomplete="off" placeholder="Tulis mesej…"><button type="submit" class="btn primary">Hantar</button></form>
+    </aside>
+
     <aside class="minimap panel" id="minimap" aria-label="Peta mini">
       <div class="mm-head"><span>Peta mini</span><b id="mmScene"></b></div>
       <canvas id="mini"></canvas>
@@ -102,6 +110,7 @@
           <button class="sbtn" id="bMisi" type="button" data-ic="list"><span>Misi</span></button>
           <button class="sbtn" id="bRun" type="button" aria-pressed="false" data-ic="fast"><span>Laju</span></button>
           <button class="sbtn" id="bMinum" type="button" data-ic="water" aria-label="Minum air"><span>Minum</span><b class="sb-n" id="bAirN">4</b></button>
+          <button class="sbtn" id="bChat" type="button" data-ic="chat" aria-pressed="false" hidden><span>Sembang</span><b class="sb-n" id="chatN" hidden>0</b></button>
           <button class="sbtn" id="bCam" type="button" hidden><span>Kamera</span></button>
         </div>
         <div class="zooms">
