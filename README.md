@@ -21,7 +21,7 @@ src/
 build.mjs         gabung semuanya menjadi satu fail HTML
 dist/jejak-haji.html   ← fail siap main (satu fail sahaja)
 models/           model 3D .glb daripada Blender (Kaabah) + fail sumber .blend
-blender/          skrip Blender yang menjana model (kaabah.py)
+blender/          skrip Blender yang menjana model (kaabah.py, characters.py, kartun.py)
 docs/BLENDER.md   panduan membina model & render dengan Blender
 ```
 
@@ -41,6 +41,11 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   Kadar boleh diubah dalam `CONFIG.tenaga` (`src/00-config.ts`).
 - **Panduan jemaah:** kesilapan lazim, langkah jika terpisah daripada rombongan, serta tenaga dan kesihatan
   (Panduan → Panduan jemaah).
+- **Tawaf 3D:** serambi Uthmaniyah dengan gerbang runcing berbatu silih dan deretan kubah kecil, mataf bertingkat tiga,
+  lampu hijau penanda garisan Hajarul Aswad, anak panah lawan arah jam di lantai dan dial kemajuan pusingan.
+- **Avatar kartun:** watak kepala besar dan mata besar dengan jalan melantun dan larian (ramal), dijana oleh
+  `blender/kartun.py` (Tetapan → *Gaya avatar 3D*). Panduan membina avatar dan persekitaran sendiri dengan betul:
+  [docs/AVATAR-PIXAR.md](docs/AVATAR-PIXAR.md).
 - **Saie 3D:** dewan Mas'a beratap dengan dinding gerbang dua tingkat, tiang berkepala emas, siling berlampu, zon lampu
   hijau, papan tanda KE MARWAH / KE SAFA, anak panah biru di lantai mengikut arah perjalanan, penunjuk **ARAH KAABAH** di
   bukit (BERDOA menghadapkan jemaah ke Kaabah) dan jalur kemajuan Safa–Marwah di sebelah kanan skrin.

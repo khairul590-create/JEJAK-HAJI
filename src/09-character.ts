@@ -10,7 +10,9 @@ interface AnimatedPilgrim {
 }
 const pilgrimCache = new Map<string, Promise<AnimatedPilgrim | null>>();
 function pilgrimId(): string {
-  return P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+  const base = P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+  // blender/kartun.py: rangka & klip sama, gaya kartun (pilihan dalam Tetapan)
+  return SET.avatar === "kartun" ? "kartun-" + base : base;
 }
 async function fetchPilgrim(id: string): Promise<AnimatedPilgrim | null> {
   let pending = pilgrimCache.get(id);
@@ -60,7 +62,7 @@ function pilgrimClip(): string {
   if (P.pose === "sit") return "Duduk";
   if (P.pose === "throw") return "Throw";
   if (P.pose === "pray") return "Takbir";
-  return P.moving ? "Walk" : "Idle";
+  return P.moving ? (T.running ? "Run" : "Walk") : "Idle";
 }
 function updatePilgrim(r: PlayerRig, dt: number): void {
   const c = r.character; if (!c) return;
@@ -82,11 +84,14 @@ function updatePilgrim(r: PlayerRig, dt: number): void {
       }
     });
   }
-  const clip = pilgrimClip();
+  let clip = pilgrimClip();
+  if (clip === "Run" && !c.actions.Run) clip = "Walk"; // watak asal tiada klip Run
   if (clip !== c.current && c.actions[clip]) {
     if (c.current) c.actions[c.current].fadeOut(.18);
     const action = c.actions[clip];
-    action.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(.18).play();
+    // watak kartun: kitaran jalan lebih pantas supaya langkah sepadan dengan kelajuan game
+    const pace = c.id.startsWith("kartun-") && (clip === "Walk" || clip === "Run") ? 1.45 : 1;
+    action.reset().setEffectiveTimeScale(pace).setEffectiveWeight(1).fadeIn(.18).play();
     c.current = clip;
   }
   c.mixer.update(Math.min(dt,.1));

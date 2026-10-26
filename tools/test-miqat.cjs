@@ -25,7 +25,7 @@ code = code.replace(/\}\)\(\);\s*$/, `window.testApi={
   resetMiqatActivity,miqatPrivate,makeRig,updateRig,loadScene,PRAYER_SEQUENCE,
   finishMiqatActivity,validate:validSave,setStep(id){S.step=ALL_STEPS.findIndex(x=>x.step.id===id)},
   current:()=>curStep()?.id,ensureWorld,updatePlayer
-  ,attachPilgrim,pilgrimClip,pilgrimCache,pilgrimId
+  ,attachPilgrim,pilgrimClip,pilgrimCache,pilgrimId,setAvatar(v){SET.avatar=v}
 
 };})();`);
 w.eval(code);
@@ -73,10 +73,13 @@ w.TextDecoder = TextDecoder; w.TextEncoder = TextEncoder;
 w.eval(fs.readFileSync('node_modules/three/examples/js/loaders/GLTFLoader.js','utf8'));
 async function checkCharacters() {
   const report=[];
-  for(const [id,gender,ihram] of [['lelaki-ihram','L',true],['perempuan-telekung','P',true],['lelaki-biasa','L',false],['perempuan-biasa','P',false]]) {
+  const base=[['lelaki-ihram','L',true],['perempuan-telekung','P',true],['lelaki-biasa','L',false],['perempuan-biasa','P',false]];
+  // gaya asal (blender/characters.py) dan gaya kartun (blender/kartun.py, + klip Run)
+  for(const [style,prefix] of [['asal',''],['kartun','kartun-']]) for(const [baseId,gender,ihram] of base) {
+    const id=prefix+baseId;a.setAvatar(style);
     const data=fs.readFileSync('models/'+id+'.glb');
     const gl=await new Promise((resolve,reject)=>new THREE.GLTFLoader().parse(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'',resolve,reject));
-    const expected=['Idle','Walk','Takbir','Bersedekap','Rukuk','Duduk','Sujud','Salam','Groom','Throw','Sleep'];
+    const expected=['Idle','Walk','Takbir','Bersedekap','Rukuk','Duduk','Sujud','Salam','Groom','Throw','Sleep'].concat(style==='kartun'?['Run']:[]);
     assert.equal(gl.animations.map(x=>x.name).sort().join(','),expected.sort().join(','));
     const mixer=new THREE.AnimationMixer(gl.scene),actions={};
     for(const clip of gl.animations) actions[clip.name]=mixer.clipAction(clip);
@@ -128,6 +131,6 @@ async function checkCharacters() {
     assert.equal(rig.fallback.visible,true);assert.equal(rig.avatar.visible,false);
     report.push({id,triangles,skins,bytes:data.length,clips:gl.animations.length});
   }
-  console.log(JSON.stringify({result:'PASS',tests:'Miqat workflow, four skinned GLBs in r128, joint motion, prayer ground bounds, runtime clips, outfit fallback, privacy and footwear',characters:report}));
+  console.log(JSON.stringify({result:'PASS',tests:'Miqat workflow, eight skinned GLBs (asal + kartun) in r128, joint motion, prayer ground bounds, runtime clips, outfit fallback, privacy and footwear',characters:report}));
 }
 checkCharacters().catch(err=>{console.error(err);process.exitCode=1}).finally(()=>dom.window.close());

@@ -52,6 +52,7 @@ interface Settings {
   suara: boolean;
   tenaga: boolean;
   gyro: boolean;
+  avatar: "kartun" | "asal";
 }
 let SET: Settings = {
   zoom: 1,
@@ -64,6 +65,7 @@ let SET: Settings = {
   suara: true,
   tenaga: true,
   gyro: false,
+  avatar: "kartun",
 };
 function loadSettings(): void {
   const s = loadJSON<Partial<Settings>>(CONFIG.settingsKey);
@@ -881,6 +883,8 @@ function openSettings(): void {
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
 <label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
+<label for="setAvatar">Gaya avatar 3D</label>
+<select id="setAvatar"><option value="kartun" ${SET.avatar === "kartun" ? "selected" : ""}>Kartun (kepala besar, jalan melantun)</option><option value="asal" ${SET.avatar === "asal" ? "selected" : ""}>Asal</option></select>
 ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
 <div class="danger"><button type="button" class="btn ghost" id="setReset">Mula semula dari awal</button>
@@ -922,6 +926,10 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
     saveSettings();
     if (SET.suara) sayClip("suara-on", "Pemandu suara dihidupkan.", "ms", true);
     else hush();
+  };
+  el<HTMLSelectElement>("setAvatar").onchange = (e) => {
+    SET.avatar = (e.target as HTMLSelectElement).value === "asal" ? "asal" : "kartun";
+    saveSettings(); // watak baharu dimuat oleh requestPilgrim pada bingkai seterusnya
   };
   el<HTMLInputElement>("setTenaga").onchange = (e) => {
     SET.tenaga = (e.target as HTMLInputElement).checked;

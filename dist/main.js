@@ -2958,6 +2958,7 @@ let SET = {
     suara: true,
     tenaga: true,
     gyro: false,
+    avatar: "kartun",
 };
 function loadSettings() {
     const s = loadJSON(CONFIG.settingsKey);
@@ -3761,6 +3762,8 @@ function openSettings() {
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
 <label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
+<label for="setAvatar">Gaya avatar 3D</label>
+<select id="setAvatar"><option value="kartun" ${SET.avatar === "kartun" ? "selected" : ""}>Kartun (kepala besar, jalan melantun)</option><option value="asal" ${SET.avatar === "asal" ? "selected" : ""}>Asal</option></select>
 ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
 <div class="danger"><button type="button" class="btn ghost" id="setReset">Mula semula dari awal</button>
@@ -3805,6 +3808,10 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
             sayClip("suara-on", "Pemandu suara dihidupkan.", "ms", true);
         else
             hush();
+    };
+    el("setAvatar").onchange = (e) => {
+        SET.avatar = e.target.value === "asal" ? "asal" : "kartun";
+        saveSettings(); // watak baharu dimuat oleh requestPilgrim pada bingkai seterusnya
     };
     el("setTenaga").onchange = (e) => {
         SET.tenaga = e.target.checked;
@@ -6585,7 +6592,9 @@ function drawMiqatPrayer2D(c, p) {
 
 const pilgrimCache = new Map();
 function pilgrimId() {
-    return P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+    const base = P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+    // blender/kartun.py: rangka & klip sama, gaya kartun (pilihan dalam Tetapan)
+    return SET.avatar === "kartun" ? "kartun-" + base : base;
 }
 async function fetchPilgrim(id) {
     let pending = pilgrimCache.get(id);
@@ -6652,7 +6661,7 @@ function pilgrimClip() {
         return "Throw";
     if (P.pose === "pray")
         return "Takbir";
-    return P.moving ? "Walk" : "Idle";
+    return P.moving ? (T.running ? "Run" : "Walk") : "Idle";
 }
 function updatePilgrim(r, dt) {
     const c = r.character;
@@ -6682,12 +6691,16 @@ function updatePilgrim(r, dt) {
             }
         });
     }
-    const clip = pilgrimClip();
+    let clip = pilgrimClip();
+    if (clip === "Run" && !c.actions.Run)
+        clip = "Walk"; // watak asal tiada klip Run
     if (clip !== c.current && c.actions[clip]) {
         if (c.current)
             c.actions[c.current].fadeOut(.18);
         const action = c.actions[clip];
-        action.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(.18).play();
+        // watak kartun: kitaran jalan lebih pantas supaya langkah sepadan dengan kelajuan game
+        const pace = c.id.startsWith("kartun-") && (clip === "Walk" || clip === "Run") ? 1.45 : 1;
+        action.reset().setEffectiveTimeScale(pace).setEffectiveWeight(1).fadeIn(.18).play();
         c.current = clip;
     }
     c.mixer.update(Math.min(dt, .1));
