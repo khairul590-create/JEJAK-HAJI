@@ -164,7 +164,7 @@ remesh.mode = 'VOXEL'; remesh.voxel_size=.008; remesh.use_smooth_shade=True
 apply(body, remesh)
 smooth = body.modifiers.new('Soften joins', 'SMOOTH'); smooth.factor=1.1; smooth.iterations=5
 apply(body, smooth)
-decimate = body.modifiers.new('Phone topology', 'DECIMATE'); decimate.ratio=.32
+decimate = body.modifiers.new('Phone topology', 'DECIMATE'); decimate.ratio=.10
 apply(body, decimate)
 
 head_parts=[]
@@ -198,7 +198,7 @@ for j in range(R-1):
         a=j*N+i;b=j*N+(i+1)%N
         face=(a,b,b+N,a+N)
         c=sum((Vector(verts[k]) for k in face),Vector())/4
-        if c.y<-.08 and abs(c.x)<.063 and c.z>1.546:
+        if c.y<-.07 and (c.x/.061)**2+((c.z-1.574)/.029)**2<1.18:
             continue
         faces.append(face)
 head_parts.append(mesh('Sculpted beard',verts,[tuple(reversed(f)) for f in faces],hair))
@@ -218,46 +218,58 @@ verts2=[(x,y-.001,z-.002 if k<17 else z+.012*(1-(x/.054)**2)) for k,(x,y,z) in e
 head_parts.append(mesh('Smile teeth',verts2,faces,eye_white))
 head_parts.append(strand('Lower lip',[(-.041,-.133,1.559),(0,-.145,1.545),(.041,-.133,1.559)],[.002,.005,.002],lip))
 
-# One fitted hair cap with swept tapered locks and a clear side part.
+# One fitted hair cap with overlapping sculptural curls, not isolated spikes.
 verts,faces=[],[]
-N=40;R=12
+N=48;R=14
 for j in range(R):
     for i in range(N):
         a=math.tau*i/N
-        end=1.52+.34*math.sin(a)
+        end=1.48+.47*math.sin(a)
         p=.005+(end-.005)*j/(R-1)
-        verts.append((.163*math.sin(p)*math.cos(a),.148*math.sin(p)*math.sin(a),1.655+.222*math.cos(p)))
+        ripple=1+.025*math.sin(a*9+p*5)
+        verts.append((.165*math.sin(p)*math.cos(a)*ripple,.151*math.sin(p)*math.sin(a)*ripple,1.655+.231*math.cos(p)))
 for j in range(R-1):
     for i in range(N):
         k=j*N+i;q=j*N+(i+1)%N
         faces.append((k,q,q+N,k+N))
 hair_parts=[mesh('Hair fitted cap',verts,[tuple(reversed(f)) for f in faces],hair)]
-for k in range(9):
-    x=-.13+k*.030
+for k in range(10):
+    x=-.115+k*.024
+    points=[];radii=[]
+    for j in range(15):
+        t=j/14
+        xx=x+.080*math.sin(math.pi*t)-.055*t
+        yy=-.125+.24*t
+        surface=max(.10,1-(xx/.19)**2-(yy/.19)**2)
+        zz=1.655+.249*math.sqrt(surface)+.014*math.sin(math.tau*t+k*.3)
+        points.append((xx,yy,zz))
+        radii.append(.006+.027*math.sin(math.pi*t)**.55)
+    hair_parts.append(strand('Swept hair curl',points,radii,hair,10,.78))
+for k in range(5):
     points=[];radii=[]
     for j in range(12):
         t=j/11
-        xx=x+.065*math.sin(math.pi*t)*(.4+k/12)
-        yy=-.128+.22*t
-        zz=1.80+.090*math.sin(math.pi*(.12+.79*t))-.20*abs(xx)
+        xx=-.13+.22*t
+        yy=-.112+.016*k+.028*math.sin(t*math.pi)
+        zz=1.805+.055*math.sin(t*math.pi)-k*.006
         points.append((xx,yy,zz))
-        radii.append(.003+.017*math.sin(math.pi*t)**.65)
-    hair_parts.append(strand('Swept hair lock',points,radii,locks,8,.65))
+        radii.append(.002+.018*math.sin(math.pi*t)**.65)
+    hair_parts.append(strand('Swept forelock',points,radii,locks,10,.7))
 for sign in [-1,1]:
     hair_parts.append(strand('Sideburn',[(sign*.143,-.026,1.769),(sign*.157,-.023,1.718),(sign*.153,-.028,1.662)],[.017,.012,.007],hair,8,.55))
 
 # Two continuous draped cotton surfaces: lower wrap and diagonal upper wrap.
 cloth_parts=[]
 verts,faces=[],[]
-N=64;R=24
+N=48;R=18
 for j in range(R):
     t=j/(R-1)
     for i in range(N):
         a=math.tau*i/N
-        fold=.004*math.sin(11*a+.8*t)+.0025*math.sin(19*a-2*t)
+        fold=.008*math.sin(9*a+.8*t)+.003*math.sin(17*a-2*t)
         rx=.239-.040*t+.006*math.sin(t*math.pi)
         ry=.159-.025*t
-        hem=.285+.018*math.sin(a+.7)+.008*math.sin(3*a)
+        hem=.285+.025*math.sin(a+.7)+.015*math.sin(3*a)
         z=hem+(1.01-hem)*t
         verts.append(((rx+fold)*math.cos(a),(ry+fold)*math.sin(a),z))
 for j in range(R-1):
@@ -282,43 +294,27 @@ for j in range(17):
         k=j*25+i
         faces.append((k,k+1,k+26,k+25))
 cloth_parts.append(mesh('Overlapping lower cloth',verts,faces,white))
-# Front and back panel curves connect across the left shoulder.
+# Front and back panels sag diagonally between waist and covered shoulder.
 verts,faces=[],[]
-N=64;R=22
+N=48;R=24
 for j in range(R):
     t=j/(R-1)
     for i in range(N):
         a=math.tau*i/N
         cx=math.cos(a)
-        bottom=.94+.055*cx+.018*math.sin(3*a)
+        bottom=.945+.090*cx+.018*math.sin(3*a)
         top=1.325+.115*cx
         z=bottom+(top-bottom)*t
-        # Width expands around shoulder so cloth drapes over rather than cuts into arm.
         rx=.205+.055*t**3
         ry=.146+.008*math.sin(math.pi*t)
-        wave=.005*math.sin(7*a+8*t)+.003*math.sin(12*a-4*t)
+        wave=(.007+.007*math.sin(math.pi*t))*math.sin(math.tau*(2.6*t-.47*cx))
+        wave+=.0025*math.sin(11*a-5*t)
         verts.append(((rx+wave)*cx,(ry+wave)*math.sin(a),z))
 for j in range(R-1):
     for i in range(N):
         k=j*N+i;q=j*N+(i+1)%N
         faces.append((k,q,q+N,k+N))
 cloth_parts.append(mesh('Diagonal shoulder drape',verts,faces,white))
-# Close the upper cloth over the covered shoulder using a rounded ribbon.
-verts,faces=[],[]
-for j in range(12):
-    t=j/11
-    a=-math.pi/2+math.pi*t
-    for i in range(10):
-        u=i/9
-        x=.115+.157*u
-        y=.150*math.sin(a)
-        z=1.393+.044*math.cos(a)-.060*u+.004*math.sin(u*math.pi*5)
-        verts.append((x,y,z))
-for j in range(11):
-    for i in range(9):
-        k=j*10+i
-        faces.append((k,k+1,k+11,k+10))
-cloth_parts.append(mesh('Soft shoulder fold',verts,faces,white))
 for ob in cloth_parts:
     solid=ob.modifiers.new('Cotton edge thickness','SOLIDIFY');solid.thickness=.003;solid.offset=0
     apply(ob,solid)
