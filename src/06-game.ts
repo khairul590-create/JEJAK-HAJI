@@ -135,7 +135,7 @@ function advance(): void {
       later(() => banner(ch), 900);
     }
     nxt.step.onStart?.();
-    say(nxt.step.text, "ms", true);
+    sayStep(nxt.step);
   }
   renderMission();
   saveGame();
@@ -183,6 +183,9 @@ function refreshCrowd(): void {
 }
 
 function loadScene(id: SceneId, pos?: Vec): void {
+  resetMiqatActivity();
+  insideMiqat = null;
+  disposeWorld();
   scene = getScene(id);
   S.scene = id;
   const sp = pos ?? scene.spawn;
@@ -241,18 +244,10 @@ function pray(sec: number, msg: string, cb: () => void): void {
 }
 
 function actWearIhram(): void {
-  fadeDo(
-    "Mandi sunat & memakai ihram",
-    S.gender === "L" ? "Dua helai kain ihram tidak berjahit" : "Pakaian menutup aurat · muka & tapak tangan terbuka",
-    () => {
-      S.outfit = "ihram";
-      applyOutfit();
-    },
-    () => openReading("larangan", () => finishStep("ihram_wear"))
-  );
+  startMiqatActivity("dress");
 }
 function actSolatIhram(): void {
-  pray(2.6, "Solat sunat ihram dua rakaat…", () => finishStep("solat_ihram"));
+  startMiqatActivity("prayer");
 }
 function openNiat(kind: "umrah" | "haji"): void {
   const opts: ChoiceOpt[] = [
@@ -1087,7 +1082,7 @@ function updateTenaga(dt: number): void {
       "warn",
       5200
     );
-    say("Tenaga rendah. Minum air dan berehat.", "ms");
+    sayClip("tenaga", "Tenaga rendah. Minum air dan berehat.", "ms");
   }
   if (S.tenaga < 15 && T.enWarn < 2) {
     T.enWarn = 2;
@@ -1634,6 +1629,7 @@ function drawSaieStrip(): void {
 }
 
 function stepTarget(): Vec | null {
+  if (insideMiqat) return miqatInteriorTarget();
   const st = curStep();
   if (!st || st.scene !== scene.id) return null;
   if (st.travel) return scene.busPos;
@@ -1886,6 +1882,7 @@ function update(dt: number): void {
     return;
   }
   T.bumpCd -= dt;
+  updateMiqatActivity(dt);
   T.throwCd -= dt;
   T.zamCd -= dt;
   if (T.busy > 0) {
@@ -2001,10 +1998,11 @@ function startGame(save: Save): void {
   if (S.step === 0) {
     later(() => banner(CHAPTERS[0]), 500);
     later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
-    say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
+    // Nama murid kekal pada skrin; audio hanya salam kemudian arahan langkah.
+    sayClip("salam", "Assalamualaikum", "ms", true, () => sayStep(curStep()));
   } else {
     toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
-    say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+    sayClip("selamat-kembali", "Selamat kembali", "ms", true, () => sayStep(curStep()));
   }
   saveGame();
   if (SET.view3d) void set3D(true, true);

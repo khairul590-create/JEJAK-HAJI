@@ -844,6 +844,10 @@ function mkPerson(g, ihram = true) {
 }
 const LINE_COL = "rgba(70,70,82,.32)";
 function drawPerson(c, p) {
+    if (p === P && miqatPrivate())
+        return;
+    if (p === P && drawMiqatPrayer2D(c, p))
+        return;
     const s = p.scale ?? 1;
     c.save();
     c.translate(p.x, p.y);
@@ -1524,20 +1528,20 @@ function buildMiqat() {
         r: 58,
         icon: "water",
         ring: true,
-        label: () => "MANDI &\nPAKAI IHRAM",
+        label: () => "MASUK BILIK\nPERSALINAN",
         enabled: () => isStep("ihram_wear"),
         locked: () => (isStep("miqat_board") ? "Baca papan penerangan miqat dahulu." : "Bilik persalinan dan bilik mandi."),
-        action: actWearIhram,
+        action: () => enterMiqatInterior("wash"),
     }, {
         id: "masjid",
         ...POS.miqat.masjid,
         r: 74,
         icon: "pray",
         ring: true,
-        label: () => (isStep("niat_umrah") ? "NIAT UMRAH" : "SOLAT SUNAT\nIHRAM"),
+        label: () => "MASUK\nMASJID",
         enabled: () => isStep("solat_ihram", "niat_umrah"),
         locked: () => (isStep("miqat_board", "ihram_wear") ? "Mandi sunat dan pakai ihram dahulu di bilik persalinan." : "Masjid Miqat Bir Ali."),
-        action: () => (isStep("solat_ihram") ? actSolatIhram() : openNiat("umrah")),
+        action: () => enterMiqatInterior("mosque"),
     }, busInteract(POS.miqat.bus));
     return sc;
 }
@@ -2964,13 +2968,20 @@ function saveSettings() {
     saveJSON(CONFIG.settingsKey, SET);
 }
 // ---------------------------------------------------------------------
-//  PEMANDU SUARA (Web Speech API — suara bergantung pada peranti)
+//  PEMANDU SUARA
+//  Bunyi utama: fail MP3 dalam folder audio/ (dijana sekali oleh
+//  tools/gen-voice.py) — ms-MY-OsmanNeural untuk Bahasa Melayu dan
+//  ar-SA-HamedNeural untuk doa. Seragam pada semua peranti.
+//  Simpanan: Web Speech API, hanya dipakai bila fail tak dapat dimain
+//  (contoh buka fail dari cakera tanpa internet).
 // ---------------------------------------------------------------------
 const VOICE = {
     ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined",
     ms: null,
     ar: null,
     picked: false,
+    base: "audio/",
+    el: null,
 };
 function pickVoices() {
     if (!VOICE.ok)
@@ -2989,33 +3000,86 @@ if (VOICE.ok) {
     window.speechSynthesis.addEventListener?.("voiceschanged", pickVoices);
 }
 function speechOn() {
-    return VOICE.ok && SET.suara && SET.sound;
+    return SET.suara && SET.sound;
 }
-function say(text, lang = "ms", flush = false) {
-    if (!speechOn() || !text)
+function sayWeb(text, lang = "ms") {
+    if (!VOICE.ok || !text)
         return;
     if (!VOICE.picked)
         pickVoices();
-    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ", "));
+    const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ","));
     const v = lang === "ar" ? VOICE.ar : VOICE.ms;
     if (v)
         u.voice = v;
     u.lang = v ? v.lang : lang === "ar" ? "ar-SA" : "ms-MY";
     u.rate = lang === "ar" ? 0.85 : 1;
-    if (flush)
-        window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
 }
+/**
+ * Bunyikan klip MP3 mengikut kunci fail (audio/<kunci>.mp3). Kalau fail
+ * gagal dimain, jatuh balik ke Web Speech supaya murid tetap dengar arahan.
+ * `then` dijalankan bila klip habis — untuk susulan, contoh: doa Arab
+ * kemudian maksudnya.
+ */
+// Satu klip pada satu masa. Klip baharu beratur di belakang klip semasa;
+// `flush` buang barisan dan potong klip semasa — kecuali klip semasa doa
+// (key -ar/-ms) dan klip baharu bukan doa: arahan langkah tunggu doa habis.
+const isDoaClip = (k) => /-(ar|ms)$/.test(k);
+let clipQ = [];
+let clipNow = "";
+let clipTok = 0;
+function sayClip(key, text, lang = "ms", flush = false, then) {
+    if (!speechOn() || !key)
+        return;
+    const play = () => sayClip(key, text, lang, false, then);
+    if (flush && !(clipNow && isDoaClip(clipNow) && !isDoaClip(key)))
+        hush();
+    else if (clipNow) {
+        if (flush)
+            clipQ = [];
+        clipQ.push(play);
+        return;
+    }
+    if (!VOICE.el) {
+        VOICE.el = document.createElement("audio");
+        VOICE.el.preload = "auto";
+        document.body.appendChild(VOICE.el);
+    }
+    const a = VOICE.el;
+    const tok = ++clipTok;
+    clipNow = key;
+    const finish = (next) => {
+        if (tok !== clipTok)
+            return; // klip ini sudah dipotong — abaikan callback lewat
+        clipTok++;
+        clipNow = "";
+        next?.();
+        if (!clipNow)
+            clipQ.shift()?.();
+    };
+    const fallback = () => finish(() => { sayWeb(text, lang); then?.(); });
+    a.onerror = fallback;
+    a.onended = () => finish(then);
+    a.src = VOICE.base + key + ".mp3";
+    a.play().catch(fallback);
+}
+function sayStep(s) {
+    if (s)
+        sayClip(s.id, s.text, "ms", true);
+}
 function hush() {
+    clipQ = [];
+    clipNow = "";
+    clipTok++;
+    if (VOICE.el) {
+        VOICE.el.pause();
+        VOICE.el.currentTime = 0;
+    }
     if (VOICE.ok)
         window.speechSynthesis.cancel();
 }
-function sayDoa(d, flush = true) {
-    if (VOICE.ar)
-        say(d.ar, "ar", flush);
-    else
-        say(d.rumi, "ms", flush);
-    say("Maksudnya: " + d.makna);
+function sayDoa(key, d, flush = true) {
+    sayClip(key + "-ar", d.ar, "ar", flush, () => sayClip(key + "-ms", "Maksudnya: " + d.makna, "ms"));
 }
 let lastToast = { text: "", t: 0 };
 function toast(text, kind = "info", ms = 4800) {
@@ -3064,7 +3128,7 @@ function showDoa(key, auto = false) {
     window.clearTimeout(doaTimer);
     doaTimer = window.setTimeout(hideDoa, 11000);
     curDoa = key;
-    sayDoa(d, false);
+    sayDoa(key, d, false);
 }
 let curDoa = "";
 function hideDoa() {
@@ -3473,10 +3537,10 @@ function initInput() {
         if (!d)
             return;
         if (!speechOn()) {
-            toast(VOICE.ok ? "Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa." : "Pelayar ini tidak menyokong pemandu suara.", "info", 4000);
+            toast("Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa.", "info", 4000);
             return;
         }
-        sayDoa(d);
+        sayDoa(curDoa, d);
     });
     el("bMinum").addEventListener("click", () => {
         SND.init();
@@ -3694,7 +3758,7 @@ function openSettings() {
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
 <label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
-${VOICE.ok ? `<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>` : ""}
+<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
 ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
@@ -3733,15 +3797,14 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
         saveSettings();
         paintAudio();
     };
-    if (VOICE.ok)
-        el("setSuara").onchange = (e) => {
-            SET.suara = e.target.checked;
-            saveSettings();
-            if (SET.suara)
-                say("Pemandu suara dihidupkan.", "ms", true);
-            else
-                hush();
-        };
+    el("setSuara").onchange = (e) => {
+        SET.suara = e.target.checked;
+        saveSettings();
+        if (SET.suara)
+            sayClip("suara-on", "Pemandu suara dihidupkan.", "ms", true);
+        else
+            hush();
+    };
     el("setTenaga").onchange = (e) => {
         SET.tenaga = e.target.checked;
         saveSettings();
@@ -5102,17 +5165,22 @@ function makeRig() {
     const ring = mesh(new THREE.TorusGeometry(0.8, 0.06, 6, 32), basic("#d9a83c"), 0, 0.04, 0, false);
     ring.rotation.x = Math.PI / 2;
     root.add(ring);
-    return { root, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+    const fallback = new THREE.Group();
+    fallback.add(body, head, hair, veil, cape, face, shoulder, armL, armR);
+    root.add(fallback);
+    const rig = { root, fallback, avatar: null, character: null, characterRequest: "", body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+    return rig;
 }
 function updateRig(dt) {
     const r = R3.rig;
     if (!r)
         return;
-    r.root.visible = C3.mode !== "eye";
+    r.root.visible = C3.mode !== "eye" && !miqatPrivate();
     r.root.position.set(P.x * K3, P.moving ? Math.abs(Math.sin(P.walk)) * 0.07 : 0, P.y * K3);
     const target = Math.atan2(P.dx, P.dy);
     r.root.rotation.y += wrapPi(target - r.root.rotation.y) * Math.min(1, dt * 14);
     const fem = P.gender === "P";
+    requestPilgrim(r);
     const key = [P.gender, P.ihram, P.shaved, P.outfit, P.acc].join();
     if (key !== r.key) {
         r.key = key;
@@ -5150,6 +5218,16 @@ function updateRig(dt) {
     }
     r.armL.rotation.x += (la - r.armL.rotation.x) * Math.min(1, dt * 12);
     r.armR.rotation.x += (ra - r.armR.rotation.x) * Math.min(1, dt * 12);
+    const detailed = !!r.character && r.character.id === pilgrimId();
+    r.fallback.visible = !detailed;
+    r.fallback.rotation.set(0, 0, 0);
+    r.fallback.scale.set(1, 1, 1);
+    if (r.avatar)
+        r.avatar.visible = detailed;
+    if (detailed)
+        updatePilgrim(r, dt);
+    if (!detailed)
+        applyMiqatFallbackPose3D(r);
 }
 function makeMarkers(sc) {
     const gold = basic("#f2c230");
@@ -5256,6 +5334,7 @@ function ensureWorld() {
     peb.frustumCulled = false;
     g.add(peb);
     R3.scene.add(g);
+    addMiqatWater(g);
     R3.world = { id: sc.id, group: g, people, peb, pebKey: -1, lamps, textures: BUILD_TEX };
     BUILD_TEX = [];
     updatePeople(people, sc.npcs, true);
@@ -5614,10 +5693,12 @@ async function setGyro(on, quiet = false) {
 //  Kemas kini & lukis setiap bingkai
 // ---------------------------------------------------------------------
 function update3D(dt) {
-    if (!R3.active || !R3.camera || !R3.world)
+    if (!R3.active || !R3.camera)
         return;
-    ensureWorld();
+    ensureWorld(); // loadScene/bilik Miqat buang dunia lama; bina semula di sini
     const w = R3.world;
+    if (!w)
+        return;
     const cam = R3.camera;
     applyLight3D(currentLight());
     // kamera
@@ -5732,14 +5813,18 @@ function update3D(dt) {
     });
     // penanda sasaran & interaksi
     const t = started ? stepTarget() : null;
-    const show = !!t && SET.arrow;
-    for (const m of [R3.tRing, R3.tGem, R3.tBeam])
-        if (m)
-            m.visible = show;
+    const show = !!t && SET.arrow && !miqatActivity;
+    const indoor = !!insideMiqat; // bilik kecil: gelang sahaja, tiada permata/tiang cahaya
+    if (R3.tRing)
+        R3.tRing.visible = show;
+    if (R3.tGem)
+        R3.tGem.visible = show && !indoor;
+    if (R3.tBeam)
+        R3.tBeam.visible = show && !indoor;
     if (show && t && R3.tRing && R3.tGem && R3.tBeam) {
         const pulse = 1 + Math.sin(T.time * 3.2) * 0.08;
         R3.tRing.position.set(t.x * K3, 0.08, t.y * K3);
-        R3.tRing.scale.setScalar(pulse);
+        R3.tRing.scale.setScalar(pulse * (indoor ? 0.5 : 1));
         R3.tGem.position.set(t.x * K3, 4 + Math.sin(T.time * 2.4) * 0.35, t.y * K3);
         R3.tGem.rotation.y += dt * 1.6;
         R3.tBeam.position.set(t.x * K3, 8, t.y * K3);
@@ -5910,6 +5995,498 @@ function drawOverlay3D() {
     }
 }
 
+let insideMiqat = null;
+const MIQAT_POINTS = {
+    nails: { x: -70, y: 0 }, bath: { x: 65, y: -45 },
+    wudu: { x: -70, y: 75 }, dress: { x: 65, y: 65 },
+    toilet: { x: -70, y: -45 }, prayer: { x: 0, y: -65 },
+    exit: { x: 0, y: 125 }, niat: { x: 0, y: -120 },
+};
+const PRAYER_SEQUENCE = [
+    { label: "Rakaat 1 · berdiri dan niat solat", pose: "stand" },
+    { label: "Rakaat 1 · takbiratul ihram", pose: "takbir" },
+    { label: "Rakaat 1 · berdiri, al-Fatihah dan surah", pose: "fold" },
+    { label: "Rakaat 1 · rukuk dan tumakninah", pose: "bow" },
+    { label: "Rakaat 1 · iktidal dan tumakninah", pose: "stand" },
+    { label: "Rakaat 1 · sujud pertama", pose: "sujud" },
+    { label: "Rakaat 1 · duduk antara dua sujud", pose: "sit" },
+    { label: "Rakaat 1 · sujud kedua", pose: "sujud" },
+    { label: "Rakaat 2 · berdiri, al-Fatihah dan surah", pose: "fold" },
+    { label: "Rakaat 2 · rukuk dan tumakninah", pose: "bow" },
+    { label: "Rakaat 2 · iktidal dan tumakninah", pose: "stand" },
+    { label: "Rakaat 2 · sujud pertama", pose: "sujud" },
+    { label: "Rakaat 2 · duduk antara dua sujud", pose: "sit" },
+    { label: "Rakaat 2 · sujud kedua", pose: "sujud" },
+    { label: "Rakaat 2 · duduk tahiyat akhir", pose: "sit" },
+    { label: "Salam · selesai dua rakaat", pose: "salam" },
+];
+const MIQAT_ACTIONS = {
+    nails: { title: "Kebersihan kuku", seconds: 6, labels: ["Bersihkan kuku tangan", "Rapikan kuku yang perlu dipotong", "Bersihkan kuku kaki"] },
+    bath: { title: "Mandi sunat ihram", seconds: 10, labels: ["Niat mandi sunat ihram", "Bersihkan diri", "Ratakan air ke seluruh badan"] },
+    wudu: { title: "Berwuduk", seconds: 10, labels: ["Persediaan wuduk", "Niat dan basuh muka", "Basuh tangan hingga siku", "Sapu sebahagian kepala", "Basuh kaki hingga buku lali · tertib"] },
+    dress: { title: "Memakai pakaian ihram", seconds: 5, labels: ["Masuk ruang persalinan tertutup", "Pakai pakaian ihram yang sesuai"] },
+    toilet: { title: "Tandas peribadi", seconds: 5, labels: ["Pintu ditutup", "Selesai · bersihkan diri dan basuh tangan"] },
+};
+let miqatActivity = null;
+let waterSource = null;
+let waterGain = null;
+function miqatPrivate() {
+    return !!miqatActivity && ["bath", "dress", "toilet"].includes(miqatActivity.kind);
+}
+function miqatPrayerPose() {
+    return miqatActivity?.kind === "prayer" ? PRAYER_SEQUENCE[miqatActivity.stage].pose : null;
+}
+function miqatPanel() {
+    let panel = document.getElementById("miqatActivity");
+    if (panel)
+        return panel;
+    panel = document.createElement("section");
+    panel.id = "miqatActivity";
+    panel.setAttribute("aria-label", "Aktiviti persediaan ihram");
+    panel.style.cssText = "position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(360px,92vw);padding:10px 14px;background:#153f35f5;color:white;border:1px solid #dcc583;border-radius:16px;z-index:45;box-shadow:0 8px 30px #0004;font:14px Nunito,sans-serif;pointer-events:auto";
+    panel.innerHTML = '<b id="miqatTitle"></b><style>#miqatActivity p{margin:4px 0}#miqatActivity button{min-height:44px;padding:0 16px;border-radius:10px;border:0;background:#dcc583;color:#153f35;font:700 14px Nunito,sans-serif}</style><p id="miqatStage" aria-live="polite"></p><progress id="miqatProgress" max="1" value="0" style="width:100%"></progress><p id="miqatNote" style="font-size:12px;opacity:.85"></p><button id="miqatNext" type="button">Seterusnya</button> <button id="miqatCancel" type="button">Hentikan</button>';
+    document.body.appendChild(panel);
+    el("miqatNext").onclick = () => {
+        const a = miqatActivity;
+        if (!a || a.kind !== "prayer" || a.stageTime < 1.2)
+            return;
+        if (a.stage === PRAYER_SEQUENCE.length - 1)
+            finishMiqatActivity();
+        else {
+            a.stage++;
+            a.stageTime = 0;
+        }
+    };
+    el("miqatCancel").onclick = () => {
+        resetMiqatActivity();
+        toast("Aktiviti dihentikan. Kemajuan aktiviti ini belum disimpan.", "info", 3000);
+    };
+    return panel;
+}
+function startWaterSound() {
+    SND.init();
+    if (!SND.ctx || !SND.master)
+        return;
+    const c = SND.ctx;
+    const b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+    const samples = b.getChannelData(0);
+    for (let i = 0; i < samples.length; i++)
+        samples[i] = Math.random() * 2 - 1;
+    waterSource = c.createBufferSource();
+    waterSource.buffer = b;
+    waterSource.loop = true;
+    waterGain = c.createGain();
+    waterGain.gain.value = SND.on ? 0.045 : 0;
+    const filter = c.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 2600;
+    waterSource.connect(filter).connect(waterGain).connect(SND.master);
+    waterSource.start();
+}
+function resetMiqatActivity() {
+    if (miqatActivity && (miqatActivity.kind === "bath" || miqatActivity.kind === "toilet")) {
+        const point = MIQAT_POINTS[miqatActivity.kind];
+        P.x = point.x;
+        P.y = point.y;
+    }
+    if (miqatActivity) {
+        T.busy = 0;
+        T.busyCb = null;
+        P.pose = "stand";
+    }
+    miqatActivity = null;
+    const drops = R3.world?.group.getObjectByName("MiqatWater");
+    if (drops)
+        drops.visible = false;
+    waterSource?.stop();
+    waterSource?.disconnect();
+    waterSource = null;
+    waterGain?.disconnect();
+    waterGain = null;
+    const panel = document.getElementById("miqatActivity");
+    if (panel)
+        panel.hidden = true;
+}
+function startMiqatActivity(kind) {
+    if (miqatActivity || !insideMiqat)
+        return;
+    if (kind === "prayer" && (!isStep("solat_ihram") || !S.flags.miqat_wudu)) {
+        toast("Ambil wuduk di tempat wuduk dahulu.", "info");
+        return;
+    }
+    if (kind === "dress" && (!S.flags.miqat_bath || !S.flags.miqat_nails)) {
+        toast("Selesaikan latihan kebersihan kuku dan mandi dahulu.", "info");
+        return;
+    }
+    miqatActivity = { kind, elapsed: 0, stage: 0, stageTime: 0 };
+    T.busy = 1e6;
+    T.busyCb = null;
+    P.moving = false;
+    const point = MIQAT_POINTS[kind];
+    P.x = point.x;
+    P.y = point.y;
+    if (kind === "bath" || kind === "toilet")
+        P.y = -100;
+    P.dx = 0;
+    P.dy = -1;
+    P.pose = kind === "nails" ? "pray" : "stand";
+    if (kind === "prayer") {
+        C3.mode = "back";
+        C3.yaw = 0.6;
+        C3.dist = 9;
+        C3.pitch = .35;
+    }
+    miqatPanel().hidden = false;
+    el("miqatTitle").textContent = kind === "prayer" ? "Solat sunat ihram · dua rakaat" : MIQAT_ACTIONS[kind].title;
+    el("miqatNote").textContent = kind === "prayer"
+        ? "Simulasi gerakan dipendekkan, bukan panduan lengkap bacaan atau tempoh solat. Solat sunat ihram dilakukan di luar waktu larangan."
+        : "Latihan persediaan sebelum niat ihram. Mandi, merapikan kuku dan solat sunat bukan rukun ihram.";
+    el("miqatNext").hidden = kind !== "prayer";
+    if (kind === "bath" || kind === "wudu")
+        startWaterSound();
+}
+function finishMiqatActivity() {
+    const kind = miqatActivity?.kind;
+    resetMiqatActivity();
+    if (!kind)
+        return;
+    if (kind === "toilet")
+        S.flags.miqat_wudu = false;
+    else
+        S.flags["miqat_" + kind] = true;
+    if (kind === "dress") {
+        S.outfit = "ihram";
+        applyOutfit();
+        finishStep("ihram_wear");
+        toast("Pakaian ihram sudah dipakai. Ambil wuduk, kemudian masuk masjid. Niat ihram belum dilaksanakan.", "ok", 6000);
+    }
+    else if (kind === "prayer") {
+        finishStep("solat_ihram");
+        toast("Simulasi dua rakaat selesai. Pergi ke tanda niat umrah di hadapan.", "ok", 5000);
+    }
+    else
+        toast(kind === "toilet" ? "Selesai. Ambil wuduk semula sebelum solat." : "Aktiviti selesai. Ikut penanda untuk langkah seterusnya.", "ok", 4000);
+    saveGame();
+}
+function updateMiqatActivity(dt) {
+    const a = miqatActivity;
+    if (!a || modalOpen || overlayBusy)
+        return;
+    a.elapsed += dt;
+    a.stageTime += dt;
+    if (waterGain)
+        waterGain.gain.value = SND.on ? .045 : 0;
+    let fraction;
+    if (a.kind === "prayer") {
+        el("miqatStage").textContent = PRAYER_SEQUENCE[a.stage].label;
+        el("miqatNext").disabled = a.stageTime < 1.2;
+        el("miqatNext").textContent = a.stage === PRAYER_SEQUENCE.length - 1 ? "Selesai" : "Seterusnya";
+        fraction = (a.stage + Math.min(1, a.stageTime / 1.2)) / PRAYER_SEQUENCE.length;
+    }
+    else {
+        const cfg = MIQAT_ACTIONS[a.kind];
+        fraction = Math.min(1, a.elapsed / cfg.seconds);
+        el("miqatStage").textContent = cfg.labels[Math.min(cfg.labels.length - 1, Math.floor(fraction * cfg.labels.length))];
+        if (a.elapsed >= cfg.seconds) {
+            finishMiqatActivity();
+            return;
+        }
+    }
+    el("miqatProgress").value = fraction;
+    if (R3.world) {
+        const drops = R3.world.group.getObjectByName("MiqatWater");
+        if (drops) {
+            drops.visible = a.kind === "bath" || a.kind === "wudu";
+            drops.position.set(P.x * K3, 0, P.y * K3);
+            drops.children.forEach((d, i) => { d.position.y = 2.2 - ((a.elapsed * 1.5 + i * .13) % 1.6); });
+        }
+    }
+}
+function enterMiqatInterior(kind) {
+    if (T.busy > 0 || overlayBusy)
+        return;
+    insideMiqat = kind;
+    scene = buildMiqatInterior(kind);
+    M3_TARGET = null;
+    disposeWorld();
+    P.x = 0;
+    P.y = 105;
+    P.dx = 0;
+    P.dy = -1;
+    cam.x = P.x;
+    cam.y = P.y;
+    C3.dist = 10;
+    C3.topDist = 35;
+    el("mmScene").textContent = scene.name;
+    SND.setAmbience(.1);
+    toast(kind === "wash" ? "Berjalan ke stesen kuku, bilik mandi, persalinan dan wuduk. Tandas mempunyai ruang privasi." : "Kasut ditinggalkan di pintu. Berjalan ke sejadah untuk solat.", "info", 6500);
+}
+function leaveMiqatInterior() {
+    const from = insideMiqat;
+    loadScene("miqat", from === "wash" ? POS.miqat.bilik : POS.miqat.masjid);
+}
+function miqatInteriorTarget() {
+    if (insideMiqat === "mosque") {
+        if (isStep("niat_umrah"))
+            return MIQAT_POINTS.niat;
+        if (!isStep("solat_ihram"))
+            return MIQAT_POINTS.exit;
+        return S.flags.miqat_wudu ? MIQAT_POINTS.prayer : MIQAT_POINTS.wudu;
+    }
+    if (!isStep("ihram_wear"))
+        return S.flags.miqat_wudu ? MIQAT_POINTS.exit : MIQAT_POINTS.wudu;
+    if (!S.flags.miqat_nails)
+        return MIQAT_POINTS.nails;
+    if (!S.flags.miqat_bath)
+        return MIQAT_POINTS.bath;
+    return MIQAT_POINTS.dress;
+}
+function buildMiqatInterior(kind) {
+    const mosque = kind === "mosque";
+    const sc = newScene("miqat", { x0: -125, y0: -155, x1: 125, y1: 145 }, { x: 0, y: 105 }, MIQAT_POINTS.exit, .1, mosque ? "#d7c9ae" : "#d7e5e2");
+    sc.name = mosque ? "Dalam Masjid Miqat" : "Bilik mandi & persalinan";
+    const block = (x, y, w, d, h, col, sign = "") => {
+        m3({ k: "bld", x, y, w, d, h, col, style: "plain", sign });
+        sc.solids.push({ t: "r", x, y, w, h: d });
+        sc.props.push({ y: y + d, draw: (c) => box(c, x, y, w, d, h, col) });
+    };
+    // Cutaway rooms retain solid side/back walls; front doorway remains open.
+    block(-125, -155, 250, 5, 30, "#e7ddc9");
+    block(-125, -150, 5, 295, 30, "#e7ddc9");
+    block(120, -150, 5, 295, 30, "#e7ddc9");
+    block(-125, 140, 100, 5, 16, "#e7ddc9");
+    block(25, 140, 100, 5, 16, "#e7ddc9");
+    if (mosque) {
+        block(-18, -150, 36, 8, 40, "#c0a16b", "KIBLAT");
+        for (const x of [-95, 95])
+            for (const y of [-110, 20])
+                m3({ k: "pillar", x, y, h: 34, r: 3, col: "#f0e8d7" });
+        block(-100, 95, 45, 10, 9, "#8f7050", "RAK KASUT");
+    }
+    else {
+        block(-106, -140, 72, 8, 27, "#a4c6bf", "TANDAS");
+        block(-106, -132, 7, 65, 27, "#a4c6bf");
+        block(-41, -132, 7, 65, 27, "#a4c6bf");
+        block(-106, -67, 72, 4, 27, "#8ea9a1", "PRIVASI");
+        // Interaction is outside the opaque booth, with the actor hidden while occupied.
+        block(31, -140, 72, 8, 27, "#a4c6bf", "MANDI");
+        block(31, -132, 7, 65, 27, "#a4c6bf");
+        block(96, -132, 7, 65, 27, "#a4c6bf");
+        block(31, -67, 72, 4, 27, "#8ea9a1", "PRIVASI");
+        block(-100, -15, 45, 8, 9, "#e8eee9", "KUKU");
+        block(40, 100, 65, 12, 22, "#b6b3a2", "PERSALINAN");
+    }
+    block(-105, 95, 35, 9, 9, "#dfeae7", mosque ? "WUDUK" : "WUDUK");
+    sc.ground = (c) => {
+        c.fillStyle = sc.bg;
+        c.fillRect(-125, -155, 250, 300);
+        gridLines(c, -125, -155, 125, 145, 20, "rgba(80,100,90,.14)");
+        if (mosque) {
+            for (const y of [-95, -35, 25])
+                for (const x of [-45, 0, 45]) {
+                    c.fillStyle = "#28644f";
+                    rrect(c, x - 15, y - 20, 30, 45, 3);
+                    c.fill();
+                    c.strokeStyle = "#d5bb7e";
+                    c.lineWidth = 1;
+                    c.stroke();
+                    c.beginPath();
+                    c.moveTo(x - 9, y - 8);
+                    c.lineTo(x, y - 16);
+                    c.lineTo(x + 9, y - 8);
+                    c.stroke();
+                }
+        }
+    };
+    sc.mini = sc.ground;
+    const station = (id, title, icon, enabled, action) => {
+        const p = MIQAT_POINTS[id];
+        sc.labels.push({ ...p, y: p.y - 18, text: title, kind: "small", h3: 2.6 });
+        sc.interacts.push({ id: "miqat_" + id, ...p, r: 24, label: () => title, icon, ring: true, enabled, locked: () => "Ikut urutan persediaan yang ditunjukkan.", action: action ?? (() => startMiqatActivity(id)) });
+    };
+    if (!mosque) {
+        station("nails", "BERSIHKAN KUKU", "cut", () => isStep("ihram_wear") && !S.flags.miqat_nails);
+        station("bath", "MANDI SUNAT", "water", () => isStep("ihram_wear") && !S.flags.miqat_bath);
+        station("dress", "PAKAI IHRAM", "hand", () => isStep("ihram_wear") && !!S.flags.miqat_bath && !!S.flags.miqat_nails, actWearIhram);
+        station("toilet", "MASUK TANDAS", "hand", () => true);
+    }
+    else {
+        station("prayer", "SOLAT DUA RAKAAT", "pray", () => isStep("solat_ihram") && !!S.flags.miqat_wudu, actSolatIhram);
+        sc.interacts.push({ id: "miqat_niat", ...MIQAT_POINTS.niat, r: 25, icon: "book", ring: true, label: () => "NIAT UMRAH", enabled: () => isStep("niat_umrah"), action: () => openNiat("umrah") });
+    }
+    station("wudu", "AMBIL WUDUK", "water", () => true);
+    sc.interacts.push({ id: "miqat_exit", ...MIQAT_POINTS.exit, r: 25, icon: "hand", ring: true, label: () => "KELUAR", enabled: () => true, action: leaveMiqatInterior });
+    sc.labels.push({ x: 0, y: 135, text: "PINTU KELUAR", kind: "place", h3: 2 });
+    return sc;
+}
+function addMiqatWater(g) {
+    if (!insideMiqat)
+        return;
+    const water = new THREE.Group();
+    water.name = "MiqatWater";
+    water.visible = false;
+    const geo = new THREE.CylinderGeometry(.012, .012, .15, 4);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x90d8ed, transparent: true, opacity: .65 });
+    for (let i = 0; i < 24; i++) {
+        const d = new THREE.Mesh(geo, mat);
+        d.position.set(Math.sin(i * 2.4) * .24, 1, Math.cos(i * 2.4) * .24);
+        water.add(d);
+    }
+    g.add(water);
+}
+function applyMiqatFallbackPose3D(r) {
+    const pose = miqatPrayerPose();
+    if (!pose)
+        return;
+    r.root.position.y = 0;
+    if (pose === "bow") {
+        r.fallback.rotation.x = .8;
+        r.fallback.scale.y = .75;
+    }
+    if (pose === "sujud") {
+        r.fallback.rotation.x = 1.3;
+        r.fallback.scale.y = .5;
+    }
+    if (pose === "sit" || pose === "salam")
+        r.fallback.scale.y = .58;
+    r.armL.rotation.x = r.armR.rotation.x = pose === "takbir" ? -2.4 : -1;
+}
+function drawMiqatPrayer2D(c, p) {
+    const pose = miqatPrayerPose();
+    if (!pose || !["bow", "sujud", "sit", "salam"].includes(pose))
+        return false;
+    c.save();
+    c.translate(p.x, p.y);
+    c.fillStyle = "#f8f7ef";
+    if (pose === "bow") {
+        rrect(c, -7, -15, 19, 10, 4);
+        c.fill();
+    }
+    else if (pose === "sujud") {
+        ell(c, 0, -5, 11, 5);
+        c.fill();
+    }
+    else {
+        rrect(c, -7, -15, 14, 15, 4);
+        c.fill();
+    }
+    c.fillStyle = p.skin;
+    circ(c, pose === "bow" ? 14 : pose === "sujud" ? 12 : 0, pose === "bow" ? -9 : pose === "sujud" ? -2 : -19, 4);
+    c.fill();
+    c.restore();
+    return true;
+}
+
+const pilgrimCache = new Map();
+function pilgrimId() {
+    return P.gender === "P" ? (P.ihram ? "perempuan-telekung" : "perempuan-biasa") : (P.ihram ? "lelaki-ihram" : "lelaki-biasa");
+}
+async function fetchPilgrim(id) {
+    let pending = pilgrimCache.get(id);
+    if (!pending) {
+        pending = loadGltfLib().then(ok => new Promise(resolve => {
+            if (!ok)
+                return resolve(null);
+            const loader = new THREE.GLTFLoader();
+            loader.load("models/" + id + ".glb", gl => {
+                if (!gl.animations.length)
+                    return resolve(null);
+                const mixer = new THREE.AnimationMixer(gl.scene);
+                const actions = {};
+                for (const clip of gl.animations)
+                    actions[clip.name] = mixer.clipAction(clip);
+                gl.scene.traverse(o => {
+                    const m = o;
+                    if (m.isMesh) {
+                        m.castShadow = true;
+                        m.receiveShadow = true;
+                        m.frustumCulled = false;
+                    }
+                });
+                resolve({ id, scene: gl.scene, mixer, actions, current: "", appearance: "" });
+            }, undefined, err => { console.warn("Character gagal dimuat", id, err); resolve(null); });
+        }));
+        pilgrimCache.set(id, pending);
+    }
+    return pending;
+}
+function attachPilgrim(r, character) {
+    if (r.avatar)
+        r.root.remove(r.avatar);
+    r.character = character;
+    r.avatar = character.scene;
+    character.appearance = "";
+    character.mixer.stopAllAction();
+    character.current = "";
+    r.root.add(character.scene);
+}
+function requestPilgrim(r) {
+    const id = pilgrimId();
+    if (r.characterRequest === id)
+        return;
+    r.characterRequest = id;
+    void fetchPilgrim(id).then(character => {
+        // An outfit/sex change may finish loading before an earlier request.
+        if (r.characterRequest !== id || !character)
+            return;
+        attachPilgrim(r, character);
+    });
+}
+function pilgrimClip() {
+    const prayer = miqatPrayerPose();
+    if (prayer)
+        return ({ stand: "Idle", takbir: "Takbir", fold: "Bersedekap", bow: "Rukuk", sit: "Duduk", sujud: "Sujud", salam: "Salam" })[prayer];
+    if (miqatActivity?.kind === "nails" || miqatActivity?.kind === "wudu")
+        return "Groom";
+    if (P.pose === "sleep")
+        return "Sleep";
+    if (P.pose === "sit")
+        return "Duduk";
+    if (P.pose === "throw")
+        return "Throw";
+    if (P.pose === "pray")
+        return "Takbir";
+    return P.moving ? "Walk" : "Idle";
+}
+function updatePilgrim(r, dt) {
+    const c = r.character;
+    if (!c)
+        return;
+    r.root.position.y = 0; // vertical motion is authored in the armature.
+    const appearance = [P.skin, P.outfit, P.acc, P.ihram, P.shaved, insideMiqat].join();
+    if (appearance !== c.appearance) {
+        c.appearance = appearance;
+        c.scene.traverse(o => {
+            if (o.name.startsWith("Hair_"))
+                o.visible = !P.shaved;
+            if (o.name.startsWith("Footwear_"))
+                o.visible = insideMiqat !== "mosque";
+            const m = o;
+            if (!m.isMesh)
+                return;
+            const mats = Array.isArray(m.material) ? m.material : [m.material];
+            for (const material of mats) {
+                const mt = material;
+                if (mt.name.startsWith("Skin"))
+                    mt.color.set(P.skin);
+                if (mt.name.startsWith("Outfit"))
+                    mt.color.set(P.outfit);
+                if (mt.name.startsWith("Scarf"))
+                    mt.color.set(P.acc);
+            }
+        });
+    }
+    const clip = pilgrimClip();
+    if (clip !== c.current && c.actions[clip]) {
+        if (c.current)
+            c.actions[c.current].fadeOut(.18);
+        const action = c.actions[clip];
+        action.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(.18).play();
+        c.current = clip;
+    }
+    c.mixer.update(Math.min(dt, .1));
+}
+
 // =====================================================================
 //  Fail 06: ENJIN GAME — keadaan, mekanik ibadah, gelung, lukisan
 // =====================================================================
@@ -6025,7 +6602,7 @@ function advance() {
             later(() => banner(ch), 900);
         }
         nxt.step.onStart?.();
-        say(nxt.step.text, "ms", true);
+        sayStep(nxt.step);
     }
     renderMission();
     saveGame();
@@ -6079,6 +6656,9 @@ function refreshCrowd() {
     }
 }
 function loadScene(id, pos) {
+    resetMiqatActivity();
+    insideMiqat = null;
+    disposeWorld();
     scene = getScene(id);
     S.scene = id;
     const sp = pos ?? scene.spawn;
@@ -6136,13 +6716,10 @@ function pray(sec, msg, cb) {
     toast(msg, "info", sec * 1000);
 }
 function actWearIhram() {
-    fadeDo("Mandi sunat & memakai ihram", S.gender === "L" ? "Dua helai kain ihram tidak berjahit" : "Pakaian menutup aurat · muka & tapak tangan terbuka", () => {
-        S.outfit = "ihram";
-        applyOutfit();
-    }, () => openReading("larangan", () => finishStep("ihram_wear")));
+    startMiqatActivity("dress");
 }
 function actSolatIhram() {
-    pray(2.6, "Solat sunat ihram dua rakaat…", () => finishStep("solat_ihram"));
+    startMiqatActivity("prayer");
 }
 function openNiat(kind) {
     const opts = [
@@ -6994,7 +7571,7 @@ function updateTenaga(dt) {
         toast(S.air > 0
             ? "Tenaga rendah. Tekan Minum (F) untuk meneguk air, dan berdiri diam untuk berehat."
             : "Tenaga rendah dan botol kosong. Isi semula di tong air Zamzam, atau berdiri diam untuk berehat.", "warn", 5200);
-        say("Tenaga rendah. Minum air dan berehat.", "ms");
+        sayClip("tenaga", "Tenaga rendah. Minum air dan berehat.", "ms");
     }
     if (S.tenaga < 15 && T.enWarn < 2) {
         T.enWarn = 2;
@@ -7534,6 +8111,8 @@ function drawSaieStrip() {
     el("ssN").textContent = `${S.saieCount}/7`;
 }
 function stepTarget() {
+    if (insideMiqat)
+        return miqatInteriorTarget();
     const st = curStep();
     if (!st || st.scene !== scene.id)
         return null;
@@ -7789,6 +8368,7 @@ function update(dt) {
         return;
     }
     T.bumpCd -= dt;
+    updateMiqatActivity(dt);
     T.throwCd -= dt;
     T.zamCd -= dt;
     if (T.busy > 0) {
@@ -7907,11 +8487,12 @@ function startGame(save) {
     if (S.step === 0) {
         later(() => banner(CHAPTERS[0]), 500);
         later(() => toast("Ikut anak panah kuning ke sasaran. Butang INTERAKSI akan menyala apabila ada tindakan.", "info", 6500), 1600);
-        say(`Assalamualaikum ${S.name}. Bab satu, ihram di miqat. ${curStep()?.text ?? ""}`, "ms", true);
+        // Nama murid kekal pada skrin; audio hanya salam kemudian arahan langkah.
+        sayClip("salam", "Assalamualaikum", "ms", true, () => sayStep(curStep()));
     }
     else {
         toast(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "info", 5000);
-        say(`Selamat kembali, ${S.name}. ${curStep()?.text ?? ""}`, "ms", true);
+        sayClip("selamat-kembali", "Selamat kembali", "ms", true, () => sayStep(curStep()));
     }
     saveGame();
     if (SET.view3d)

@@ -32,6 +32,10 @@ interface PeopleInst {
 }
 interface PlayerRig {
   root: THREE.Group;
+  fallback: THREE.Group;
+  avatar: THREE.Group | null;
+  character: AnimatedPilgrim | null;
+  characterRequest: string;
   body: THREE.Mesh;
   head: THREE.Mesh;
   hair: THREE.Mesh;
@@ -1271,16 +1275,21 @@ function makeRig(): PlayerRig {
   const ring = mesh(new THREE.TorusGeometry(0.8, 0.06, 6, 32), basic("#d9a83c"), 0, 0.04, 0, false);
   ring.rotation.x = Math.PI / 2;
   root.add(ring);
-  return { root, body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+  const fallback = new THREE.Group();
+  fallback.add(body, head, hair, veil, cape, face, shoulder, armL, armR);
+  root.add(fallback);
+  const rig: PlayerRig = { root, fallback, avatar: null, character: null, characterRequest: "", body, head, hair, veil, cape, face, shoulder, armL, armR, armMats, key: "" };
+  return rig;
 }
 function updateRig(dt: number): void {
   const r = R3.rig;
   if (!r) return;
-  r.root.visible = C3.mode !== "eye";
+  r.root.visible = C3.mode !== "eye" && !miqatPrivate();
   r.root.position.set(P.x * K3, P.moving ? Math.abs(Math.sin(P.walk)) * 0.07 : 0, P.y * K3);
   const target = Math.atan2(P.dx, P.dy);
   r.root.rotation.y += wrapPi(target - r.root.rotation.y) * Math.min(1, dt * 14);
   const fem = P.gender === "P";
+  requestPilgrim(r);
   const key = [P.gender, P.ihram, P.shaved, P.outfit, P.acc].join();
   if (key !== r.key) {
     r.key = key;
@@ -1315,6 +1324,14 @@ function updateRig(dt: number): void {
   }
   r.armL.rotation.x += (la - r.armL.rotation.x) * Math.min(1, dt * 12);
   r.armR.rotation.x += (ra - r.armR.rotation.x) * Math.min(1, dt * 12);
+  const detailed = !!r.character && r.character.id === pilgrimId();
+  r.fallback.visible = !detailed;
+  r.fallback.rotation.set(0, 0, 0);
+  r.fallback.scale.set(1, 1, 1);
+  if (r.avatar) r.avatar.visible = detailed;
+  if (detailed) updatePilgrim(r, dt);
+
+  if (!detailed) applyMiqatFallbackPose3D(r);
 }
 
 function makeMarkers(sc: THREE.Scene): void {
@@ -1418,6 +1435,7 @@ function ensureWorld(): void {
   peb.frustumCulled = false;
   g.add(peb);
   R3.scene.add(g);
+  addMiqatWater(g);
   R3.world = { id: sc.id, group: g, people, peb, pebKey: -1, lamps, textures: BUILD_TEX };
   BUILD_TEX = [];
   updatePeople(people, sc.npcs, true);
@@ -1513,7 +1531,7 @@ function addM3(g: THREE.Group, d: M3, lamps: THREE.Vector3[], seed: number): voi
 //  Model .glb luaran (Blender) — lihat docs/BLENDER.md
 // ---------------------------------------------------------------------
 interface GltfLoaderLike {
-  load(url: string, ok: (g: { scene: THREE.Group }) => void, prog?: unknown, err?: (e: unknown) => void): void;
+  load(url: string, ok: (g: { scene: THREE.Group; animations: THREE.AnimationClip[] }) => void, prog?: unknown, err?: (e: unknown) => void): void;
 }
 let gltfReady: Promise<boolean> | null = null;
 const gltfCache = new Map<string, Promise<THREE.Group | null>>();
@@ -1765,9 +1783,10 @@ async function setGyro(on: boolean, quiet = false): Promise<boolean> {
 //  Kemas kini & lukis setiap bingkai
 // ---------------------------------------------------------------------
 function update3D(dt: number): void {
-  if (!R3.active || !R3.camera || !R3.world) return;
-  ensureWorld();
+  if (!R3.active || !R3.camera) return;
+  ensureWorld(); // loadScene/bilik Miqat buang dunia lama; bina semula di sini
   const w = R3.world;
+  if (!w) return;
   const cam = R3.camera;
   applyLight3D(currentLight());
   // kamera
@@ -1872,12 +1891,15 @@ function update3D(dt: number): void {
   });
   // penanda sasaran & interaksi
   const t = started ? stepTarget() : null;
-  const show = !!t && SET.arrow;
-  for (const m of [R3.tRing, R3.tGem, R3.tBeam]) if (m) m.visible = show;
+  const show = !!t && SET.arrow && !miqatActivity;
+  const indoor = !!insideMiqat; // bilik kecil: gelang sahaja, tiada permata/tiang cahaya
+  if (R3.tRing) R3.tRing.visible = show;
+  if (R3.tGem) R3.tGem.visible = show && !indoor;
+  if (R3.tBeam) R3.tBeam.visible = show && !indoor;
   if (show && t && R3.tRing && R3.tGem && R3.tBeam) {
     const pulse = 1 + Math.sin(T.time * 3.2) * 0.08;
     R3.tRing.position.set(t.x * K3, 0.08, t.y * K3);
-    R3.tRing.scale.setScalar(pulse);
+    R3.tRing.scale.setScalar(pulse * (indoor ? 0.5 : 1));
     R3.tGem.position.set(t.x * K3, 4 + Math.sin(T.time * 2.4) * 0.35, t.y * K3);
     R3.tGem.rotation.y += dt * 1.6;
     R3.tBeam.position.set(t.x * K3, 8, t.y * K3);

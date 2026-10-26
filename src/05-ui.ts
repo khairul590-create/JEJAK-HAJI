@@ -75,13 +75,20 @@ function saveSettings(): void {
 }
 
 // ---------------------------------------------------------------------
-//  PEMANDU SUARA (Web Speech API — suara bergantung pada peranti)
+//  PEMANDU SUARA
+//  Bunyi utama: fail MP3 dalam folder audio/ (dijana sekali oleh
+//  tools/gen-voice.py) — ms-MY-OsmanNeural untuk Bahasa Melayu dan
+//  ar-SA-HamedNeural untuk doa. Seragam pada semua peranti.
+//  Simpanan: Web Speech API, hanya dipakai bila fail tak dapat dimain
+//  (contoh buka fail dari cakera tanpa internet).
 // ---------------------------------------------------------------------
 const VOICE = {
   ok: "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined",
   ms: null as SpeechSynthesisVoice | null,
   ar: null as SpeechSynthesisVoice | null,
   picked: false,
+  base: "audio/",
+  el: null as HTMLAudioElement | null,
 };
 function pickVoices(): void {
   if (!VOICE.ok) return;
@@ -98,26 +105,76 @@ if (VOICE.ok) {
   window.speechSynthesis.addEventListener?.("voiceschanged", pickVoices);
 }
 function speechOn(): boolean {
-  return VOICE.ok && SET.suara && SET.sound;
+  return SET.suara && SET.sound;
 }
-function say(text: string, lang: "ms" | "ar" = "ms", flush = false): void {
-  if (!speechOn() || !text) return;
+function sayWeb(text: string, lang: "ms" | "ar" = "ms"): void {
+  if (!VOICE.ok || !text) return;
   if (!VOICE.picked) pickVoices();
-  const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ", "));
+  const u = new SpeechSynthesisUtterance(text.replace(/\n/g, " ").replace(/[→·—]/g, ","));
   const v = lang === "ar" ? VOICE.ar : VOICE.ms;
   if (v) u.voice = v;
   u.lang = v ? v.lang : lang === "ar" ? "ar-SA" : "ms-MY";
   u.rate = lang === "ar" ? 0.85 : 1;
-  if (flush) window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
 }
+/**
+ * Bunyikan klip MP3 mengikut kunci fail (audio/<kunci>.mp3). Kalau fail
+ * gagal dimain, jatuh balik ke Web Speech supaya murid tetap dengar arahan.
+ * `then` dijalankan bila klip habis — untuk susulan, contoh: doa Arab
+ * kemudian maksudnya.
+ */
+// Satu klip pada satu masa. Klip baharu beratur di belakang klip semasa;
+// `flush` buang barisan dan potong klip semasa — kecuali klip semasa doa
+// (key -ar/-ms) dan klip baharu bukan doa: arahan langkah tunggu doa habis.
+const isDoaClip = (k: string) => /-(ar|ms)$/.test(k);
+let clipQ: (() => void)[] = [];
+let clipNow = "";
+let clipTok = 0;
+function sayClip(key: string, text: string, lang: "ms" | "ar" = "ms", flush = false, then?: () => void): void {
+  if (!speechOn() || !key) return;
+  const play = () => sayClip(key, text, lang, false, then);
+  if (flush && !(clipNow && isDoaClip(clipNow) && !isDoaClip(key))) hush();
+  else if (clipNow) {
+    if (flush) clipQ = [];
+    clipQ.push(play);
+    return;
+  }
+  if (!VOICE.el) {
+    VOICE.el = document.createElement("audio");
+    VOICE.el.preload = "auto";
+    document.body.appendChild(VOICE.el);
+  }
+  const a = VOICE.el;
+  const tok = ++clipTok;
+  clipNow = key;
+  const finish = (next?: () => void) => {
+    if (tok !== clipTok) return; // klip ini sudah dipotong — abaikan callback lewat
+    clipTok++;
+    clipNow = "";
+    next?.();
+    if (!clipNow) clipQ.shift()?.();
+  };
+  const fallback = () => finish(() => { sayWeb(text, lang); then?.(); });
+  a.onerror = fallback;
+  a.onended = () => finish(then);
+  a.src = VOICE.base + key + ".mp3";
+  a.play().catch(fallback);
+}
+function sayStep(s: Step | null): void {
+  if (s) sayClip(s.id, s.text, "ms", true);
+}
 function hush(): void {
+  clipQ = [];
+  clipNow = "";
+  clipTok++;
+  if (VOICE.el) {
+    VOICE.el.pause();
+    VOICE.el.currentTime = 0;
+  }
   if (VOICE.ok) window.speechSynthesis.cancel();
 }
-function sayDoa(d: Doa, flush = true): void {
-  if (VOICE.ar) say(d.ar, "ar", flush);
-  else say(d.rumi, "ms", flush);
-  say("Maksudnya: " + d.makna);
+function sayDoa(key: string, d: Doa, flush = true): void {
+  sayClip(key + "-ar", d.ar, "ar", flush, () => sayClip(key + "-ms", "Maksudnya: " + d.makna, "ms"));
 }
 
 // ---------------------------------------------------------------------
@@ -168,7 +225,7 @@ function showDoa(key: string, auto = false): void {
   window.clearTimeout(doaTimer);
   doaTimer = window.setTimeout(hideDoa, 11000);
   curDoa = key;
-  sayDoa(d, false);
+  sayDoa(key, d, false);
 }
 let curDoa = "";
 function hideDoa(): void {
@@ -594,10 +651,10 @@ function initInput(): void {
     const d = DOA[curDoa];
     if (!d) return;
     if (!speechOn()) {
-      toast(VOICE.ok ? "Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa." : "Pelayar ini tidak menyokong pemandu suara.", "info", 4000);
+      toast("Hidupkan Bunyi dan Pemandu suara dalam Tetapan untuk mendengar doa.", "info", 4000);
       return;
     }
-    sayDoa(d);
+    sayDoa(curDoa, d);
   });
   el("bMinum").addEventListener("click", () => {
     SND.init();
@@ -822,7 +879,7 @@ function openSettings(): void {
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
 <label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
-${VOICE.ok ? `<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>` : ""}
+<label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
 ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? "checked" : ""}> Giroskop: gerakkan telefon untuk memandang (kamera Mata 3D)</label>` : ""}
 <div class="set-row"><button type="button" class="btn ghost" id="setAch">Pencapaian</button><button type="button" class="btn ghost" id="setRefs">Rujukan</button></div>
@@ -860,13 +917,12 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
     saveSettings();
     paintAudio();
   };
-  if (VOICE.ok)
-    el<HTMLInputElement>("setSuara").onchange = (e) => {
-      SET.suara = (e.target as HTMLInputElement).checked;
-      saveSettings();
-      if (SET.suara) say("Pemandu suara dihidupkan.", "ms", true);
-      else hush();
-    };
+  el<HTMLInputElement>("setSuara").onchange = (e) => {
+    SET.suara = (e.target as HTMLInputElement).checked;
+    saveSettings();
+    if (SET.suara) sayClip("suara-on", "Pemandu suara dihidupkan.", "ms", true);
+    else hush();
+  };
   el<HTMLInputElement>("setTenaga").onchange = (e) => {
     SET.tenaga = (e.target as HTMLInputElement).checked;
     saveSettings();

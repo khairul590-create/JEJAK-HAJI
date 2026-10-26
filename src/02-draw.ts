@@ -216,6 +216,8 @@ function mkPerson(g?: Gender, ihram = true): Person {
 const LINE_COL = "rgba(70,70,82,.32)";
 
 function drawPerson(c: Ctx, p: Person): void {
+  if (p === P && miqatPrivate()) return;
+  if (p === P && drawMiqatPrayer2D(c, p)) return;
   const s = p.scale ?? 1;
   c.save();
   c.translate(p.x, p.y);

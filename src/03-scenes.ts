@@ -391,10 +391,10 @@ function buildMiqat(): Scene {
       r: 58,
       icon: "water",
       ring: true,
-      label: () => "MANDI &\nPAKAI IHRAM",
+      label: () => "MASUK BILIK\nPERSALINAN",
       enabled: () => isStep("ihram_wear"),
       locked: () => (isStep("miqat_board") ? "Baca papan penerangan miqat dahulu." : "Bilik persalinan dan bilik mandi."),
-      action: actWearIhram,
+      action: () => enterMiqatInterior("wash"),
     },
     {
       id: "masjid",
@@ -402,10 +402,10 @@ function buildMiqat(): Scene {
       r: 74,
       icon: "pray",
       ring: true,
-      label: () => (isStep("niat_umrah") ? "NIAT UMRAH" : "SOLAT SUNAT\nIHRAM"),
+      label: () => "MASUK\nMASJID",
       enabled: () => isStep("solat_ihram", "niat_umrah"),
       locked: () => (isStep("miqat_board", "ihram_wear") ? "Mandi sunat dan pakai ihram dahulu di bilik persalinan." : "Masjid Miqat Bir Ali."),
-      action: () => (isStep("solat_ihram") ? actSolatIhram() : openNiat("umrah")),
+      action: () => enterMiqatInterior("mosque"),
     },
     busInteract(POS.miqat.bus)
   );
