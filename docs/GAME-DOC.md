@@ -61,7 +61,7 @@ berhak cipta tanpa lesen (lihat `PANORAMA-360.md`).
 2. Gaya toon + garis luar sebagai pilihan dalam Tetapan, kemudian pemilik pilih gaya utama.
 3. Jemaah beranimasi (peringkat B): orang ramai berjalan, bertawaf dan bersaie, ikut gaya yang dipilih.
 4. Model Blender: Menara Jam, Masjid Namirah, Masjid Miqat, khemah Mina (peringkat C).
-5. Tekstur dan HDRI CC0 sebenar, jika domain Poly Haven / ambientCG dibenarkan dalam rangkaian pembangunan.
+5. Pasang tekstur CC0 yang sudah ada dalam `textures/polyhaven/` (marmar, pasir, batu) pada material 3D, dalam had saiz di atas.
 
 Satu sistem dibina, diuji di telefon dan diterbitkan pada satu masa. Jangan gabungkan beberapa sistem baharu dalam satu
 perubahan.
