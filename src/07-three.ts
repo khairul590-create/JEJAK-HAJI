@@ -1762,16 +1762,17 @@ function updateRig(dt: number): void {
   if (key !== r.key) {
     r.key = key;
     const body = P.ihram ? "#f7f7f2" : P.outfit;
-    (r.body.material as THREE.MeshLambertMaterial).color.set(body);
-    (r.hair.material as THREE.MeshLambertMaterial).color.set(hairColor(P));
+    // gfxTint: tukar warna bahan asal & salinan gaya Kartun (11-grafik.ts)
+    gfxTint(r.body.material, body);
+    gfxTint(r.hair.material, hairColor(P));
     const scarf = P.ihram ? "#ffffff" : P.acc;
-    (r.veil.material as THREE.MeshLambertMaterial).color.set(scarf);
-    (r.cape.material as THREE.MeshLambertMaterial).color.set(scarf);
-    r.armMats[0].color.set(fem && !P.ihram ? shade(P.outfit, -0.06) : body);
-    r.armMats[2].color.set(fem && !P.ihram ? shade(P.outfit, -0.06) : body);
-    for (const m of [r.head, r.face, r.shoulder]) (m.material as THREE.MeshLambertMaterial).color.set(P.skin);
-    r.armMats[1].color.set(P.skin);
-    r.armMats[3].color.set(P.skin);
+    gfxTint(r.veil.material, scarf);
+    gfxTint(r.cape.material, scarf);
+    gfxTint(r.armMats[0], fem && !P.ihram ? shade(P.outfit, -0.06) : body);
+    gfxTint(r.armMats[2], fem && !P.ihram ? shade(P.outfit, -0.06) : body);
+    for (const m of [r.head, r.face, r.shoulder]) gfxTint(m.material, P.skin);
+    gfxTint(r.armMats[1], P.skin);
+    gfxTint(r.armMats[3], P.skin);
     r.head.visible = !fem;
     r.hair.visible = !fem;
     r.veil.visible = fem;
@@ -1844,7 +1845,10 @@ function disposeWorld(): void {
     const m = o as THREE.Mesh;
     if (m.geometry && !Object.values(PG).includes(m.geometry)) m.geometry.dispose();
     const mats = m.material ? (Array.isArray(m.material) ? m.material : [m.material]) : [];
-    for (const mt of mats) mt.dispose();
+    for (const mt of mats) {
+      mt.dispose();
+      (mt.userData.orig as THREE.Material | undefined)?.dispose(); // bahan asal di sebalik salinan toon
+    }
   });
   for (const t of w.textures) t.dispose();
   matCache.clear();
@@ -2067,6 +2071,7 @@ function loadModels(id: SceneId, g: THREE.Group, subs: Map<string, THREE.Group>)
       obj.position.set(X, 0, Z);
       obj.rotation.y = ((m.rot ?? 0) * Math.PI) / 180;
       obj.scale.setScalar(m.scale ?? 1);
+      obj.userData.keyOutline = true; // gaya Kartun: bergaris walaupun pada tahap Rendah
       obj.traverse((o) => {
         const ms = o as THREE.Mesh;
         if (!ms.isMesh) return;

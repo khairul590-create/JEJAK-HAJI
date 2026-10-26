@@ -48,6 +48,9 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   senja, malam), pantulan persekitaran, marmar dan emas berkilat (PBR), bloom pada lampu, bayang di bawah jemaah, dan gunung
   bergradien. Tetapan **Kualiti grafik 3D** (Rendah / Sederhana / Tinggi): telefon bermula pada Rendah, komputer pada Tinggi,
   dan kualiti diturunkan secara automatik jika FPS bawah 24 (`src/11-grafik.ts`).
+- **Gaya grafik Kartun (cozy):** pilihan dalam Tetapan → *Gaya grafik 3D*. Warna rata berjalur (toon) dan garis luar gelap pada
+  jemaah, watak dan bangunan. Pada tahap Rendah, cahaya berjalur dikira per bucu dan hanya jemaah, watak dan Kaabah bergaris,
+  jadi kelajuannya sama seperti gaya Realistik. Lalai: Realistik.
 - **Lawatan 360°:** 15 titik pandang dari Miqat hingga Jamrah Aqabah dalam kamera Mata yang berputar, dengan penerangan dan
   pautan ke foto 360° sebenar. Foto 360° sendiri boleh dimasukkan (`panorama/`). Lihat [docs/PANORAMA-360.md](docs/PANORAMA-360.md).
 - **Wukuf 3D:** gerbang papan sempadan Arafah dwibahasa, tiang semburan air berkabus, Masjid Namirah enam menara, Jabal Rahmah

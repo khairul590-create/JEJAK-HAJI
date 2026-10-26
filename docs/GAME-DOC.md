@@ -58,7 +58,7 @@ berhak cipta tanpa lesen (lihat `PANORAMA-360.md`).
 
 ## 7. Urutan kerja seterusnya
 1. ✅ Dokumen ini.
-2. Gaya toon + garis luar sebagai pilihan dalam Tetapan, kemudian pemilik pilih gaya utama.
+2. ✅ Gaya toon + garis luar sebagai pilihan dalam Tetapan. **Menunggu:** pemilik bandingkan di telefon dan pilih gaya utama.
 3. Jemaah beranimasi (peringkat B): orang ramai berjalan, bertawaf dan bersaie, ikut gaya yang dipilih.
 4. Model Blender: Menara Jam, Masjid Namirah, Masjid Miqat, khemah Mina (peringkat C).
 5. Pasang tekstur CC0 yang sudah ada dalam `textures/polyhaven/` (marmar, pasir, batu) pada material 3D, dalam had saiz di atas.

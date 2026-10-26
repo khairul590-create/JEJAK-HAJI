@@ -2,7 +2,8 @@
 //  Fail 11: GRAFIK 3D — warna sRGB + tone mapping ACES, kubah langit &
 //  pantulan persekitaran yang mengikut waktu ibadah, tahap kualiti
 //  (Rendah / Sederhana / Tinggi) dengan penurunan automatik jika perlahan,
-//  bloom (Tinggi sahaja) dan bayang bulat di bawah jemaah.
+//  bloom (Tinggi sahaja), bayang bulat di bawah jemaah, dan gaya Kartun
+//  (toon + garis luar) sebagai pilihan dalam Tetapan.
 //
 //  Kos setiap tahap:
 //   Rendah    — tiada bayang-bayang, piksel 1×, bahan ringkas (paling laju)
@@ -55,6 +56,7 @@ function gfxSetup(r: THREE.WebGLRenderer): void {
   r.toneMapping = THREE.ACESFilmicToneMapping;
   r.toneMappingExposure = 0.92;
   GFX.pmrem = new THREE.PMREMGenerator(r);
+  STYLE.res.value = new THREE.Vector2(1, 1);
 }
 function gfxPixelRatio(): number {
   return Math.min(window.devicePixelRatio || 1, [1, 1.5, 2][gfxLevel()]);
@@ -347,6 +349,7 @@ function setGrafik(lv: Grafik, why = ""): void {
   resize3D();
   // bina semula dunia supaya bahan (Lambert / PBR) sepadan dengan tahap baharu
   disposeWorld();
+  STYLE.epoch++;
   GFX.fps.warm = 0;
   if (why) toast(why, "info", 5000);
 }
@@ -362,7 +365,8 @@ function gfxFrame(): void {
     // dunia baharu: abaikan bingkai berat semasa memuat
     f.world = R3.world.id;
     f.warm = 0;
-  }
+    gfxStyleFrame(true);
+  } else gfxStyleFrame();
   if (!SET.grafikAuto || gfxLevel() === 0 || document.hidden || dt > 1) return;
   f.warm += dt;
   if (f.warm < 3) {
@@ -380,4 +384,218 @@ function gfxFrame(): void {
     const lv = GRAFIK_ORDER[gfxLevel() - 1];
     setGrafik(lv, `Game agak perlahan (${Math.round(fps)} FPS). Kualiti grafik diturunkan ke ${GRAFIK_NAMES[lv]}. Boleh ditukar dalam Tetapan.`);
   }
+}
+
+// ---------------------------------------------------------------------
+//  Gaya Kartun (cozy): bahan bercahaya → MeshToonMaterial 3 tona, dan
+//  garis luar gelap (cangkerang terbalik) setebal ±1.5 piksel yang
+//  menipis di kejauhan. Garis luar ialah objek anak yang berkongsi
+//  geometri, jadi ia ikut jemaah instanced & watak beranimasi.
+//  Kos: satu panggilan lukis tambahan bagi setiap objek bergaris.
+//  Pada tahap Rendah, hanya jemaah, watak & bangunan utama bergaris.
+// ---------------------------------------------------------------------
+type Gaya = "realistik" | "kartun";
+const GAYA_ORDER: Gaya[] = ["realistik", "kartun"];
+const TOON = new WeakMap<THREE.Material, THREE.MeshToonMaterial | THREE.MeshLambertMaterial>();
+const TOON_LO = new WeakMap<THREE.Material, THREE.MeshToonMaterial | THREE.MeshLambertMaterial>();
+const STYLE = {
+  t: 0,
+  epoch: 1, // naik setiap kali gaya bertukar; objek bertanda epoch lama diproses semula
+
+  grad: null as THREE.DataTexture | null,
+  outline: null as THREE.MeshBasicMaterial | null,
+  outlineSkin: null as THREE.MeshBasicMaterial | null,
+  res: { value: null as unknown as THREE.Vector2 }, // dicipta dalam gfxSetup (THREE dimuat lewat)
+  px: { value: 1.5 },
+};
+function gfxToon(): boolean {
+  return SET.gaya === "kartun";
+}
+function toonGrad(): THREE.DataTexture {
+  if (!STYLE.grad) {
+    // indeks = (dotNL + 1) / 2 dalam 4 jalur: belakang (diterangi langit sahaja) → separuh → penuh
+    const t = new THREE.DataTexture(new Uint8Array([0, 0, 153, 255]), 4, 1, THREE.LuminanceFormat);
+    t.minFilter = THREE.NearestFilter;
+    t.magFilter = THREE.NearestFilter;
+    t.generateMipmaps = false;
+    t.needsUpdate = true;
+    STYLE.grad = t;
+  }
+  return STYLE.grad;
+}
+type LitMat = THREE.MeshLambertMaterial & Partial<Pick<THREE.MeshStandardMaterial, "metalness">>;
+function isLit(m: THREE.Material): m is LitMat {
+  return m instanceof THREE.MeshLambertMaterial || m instanceof THREE.MeshPhongMaterial || m instanceof THREE.MeshStandardMaterial;
+}
+// Sederhana / Tinggi: MeshToonMaterial (jalur cahaya per piksel, tajam).
+// Rendah: Lambert dengan jalur cahaya per bucu — rupa hampir sama, kos sama
+// seperti gaya Realistik pada tahap Rendah.
+function toonLambertCompile(sh: THREE.Shader): void {
+  sh.vertexShader =
+    "float jhToon(float d) { return d < 0.0 ? 0.0 : (d < 0.5 ? 0.6 : 1.0); }\n" +
+    sh.vertexShader.replace(
+      "#include <lights_lambert_vertex>",
+      THREE.ShaderChunk.lights_lambert_vertex.replace(/saturate\( (-?)dotNL \)/g, "jhToon( $1dotNL )")
+    );
+}
+function toonOf(src: THREE.Material): THREE.Material {
+  if (!isLit(src)) return src;
+  // Phong (gunung bersegi) memang dikira per piksel: kekal toon penuh supaya segi tidak hilang
+  const cheap = gfxLevel() === 0 && !(src instanceof THREE.MeshPhongMaterial);
+  const cache = cheap ? TOON_LO : TOON;
+  let t = cache.get(src);
+  if (!t) {
+    const n = cheap ? new THREE.MeshLambertMaterial() : new THREE.MeshToonMaterial();
+    THREE.Material.prototype.copy.call(n, src);
+    if (n instanceof THREE.MeshToonMaterial) n.gradientMap = toonGrad();
+    else n.onBeforeCompile = toonLambertCompile;
+    n.color.copy(src.color);
+    // emas & logam: warna rata sedikit lebih cerah (toon tiada pantulan)
+    n.userData.k = (src.metalness ?? 0) > 0.5 ? 1.15 : 1;
+    n.color.multiplyScalar(n.userData.k);
+    n.map = src.map;
+    n.emissive.copy(src.emissive);
+    n.emissiveMap = src.emissiveMap;
+    n.emissiveIntensity = src.emissiveIntensity;
+    n.alphaMap = src.alphaMap;
+    n.skinning = src.skinning;
+    n.morphTargets = src.morphTargets;
+    (n as unknown as { flatShading: boolean }).flatShading = !cheap && !!(src as unknown as { flatShading?: boolean }).flatShading;
+    n.userData.orig = src;
+    t = n;
+    cache.set(src, t);
+  }
+  return t;
+}
+function origOf(m: THREE.Material): THREE.Material {
+  return (m.userData.orig as THREE.Material | undefined) ?? m;
+}
+// tukar warna bahan tanpa mengira gaya semasa (asal & salinan toon)
+function gfxTint(m: THREE.Material | THREE.Material[], col: string): void {
+  const base = origOf(Array.isArray(m) ? m[0] : m) as THREE.MeshLambertMaterial;
+  base.color.set(col);
+  for (const t of [TOON.get(base), TOON_LO.get(base)]) if (t) t.color.copy(base.color).multiplyScalar(t.userData.k ?? 1);
+}
+function outlineMat(skin: boolean): THREE.MeshBasicMaterial {
+  const m = new THREE.MeshBasicMaterial({ color: new THREE.Color("#3a2b22"), side: THREE.BackSide });
+  m.skinning = skin;
+  m.userData.outline = true;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uOutRes = STYLE.res;
+    sh.uniforms.uOutPx = STYLE.px;
+    sh.vertexShader =
+      "uniform vec2 uOutRes;\nuniform float uOutPx;\n" +
+      sh.vertexShader
+        .replace(
+          "#include <begin_vertex>",
+          "#ifndef USE_ENVMAP\n#include <beginnormal_vertex>\n#include <morphnormal_vertex>\n#include <skinnormal_vertex>\n#endif\n#include <begin_vertex>"
+        )
+        .replace(
+          "#include <project_vertex>",
+          `#include <project_vertex>
+{
+  // tolak bucu keluar di ruang skrin supaya garis setebal uOutPx piksel
+  vec4 q = vec4(transformed - objectNormal * 0.05, 1.0);
+  #ifdef USE_INSTANCING
+  q = instanceMatrix * q;
+  #endif
+  q = projectionMatrix * modelViewMatrix * q;
+  vec2 d = (gl_Position.xy / gl_Position.w - q.xy / q.w) * uOutRes;
+  float l = length(d);
+  float fade = 1.0 - smoothstep(50.0, 170.0, -mvPosition.z);
+  if (l > 1e-4 && q.w > 0.0) gl_Position.xy += (d / l) * (uOutPx * fade * 2.0 / uOutRes) * gl_Position.w;
+}`
+        );
+  };
+  return m;
+}
+// objek yang bergaris pada tahap Rendah (selainnya hanya pada Sederhana / Tinggi)
+function outlineKey(o: THREE.Object3D): boolean {
+  if ((o as THREE.SkinnedMesh).isSkinnedMesh || (o as THREE.InstancedMesh).isInstancedMesh) return true;
+  for (let p: THREE.Object3D | null = o; p; p = p.parent) if (p.userData.keyOutline || p === R3.rig?.root) return true;
+  return false;
+}
+function wantOutline(m: THREE.Mesh, mat: THREE.Material): boolean {
+  // objek halimunan (penghadang, pengesan) & lutsinar tiada garis
+  if (!mat.visible || !mat.colorWrite || !mat.depthWrite || mat.transparent || mat.side === THREE.DoubleSide) return false;
+  if (!m.geometry.getAttribute("normal")) return false;
+  const g = m.geometry;
+  if (!g.boundingBox) g.computeBoundingBox();
+  const s = (g.boundingBox as THREE.Box3).getSize(new THREE.Vector3());
+  if (Math.min(s.x, s.y, s.z) < 0.02) return false; // satah rata (lantai, papan): tiada siluet
+  return gfxLevel() >= 1 || outlineKey(m);
+}
+function addOutline(m: THREE.Mesh): void {
+  const skin = (m as THREE.SkinnedMesh).isSkinnedMesh;
+  if (!STYLE.outline) {
+    STYLE.outline = outlineMat(false);
+    STYLE.outlineSkin = outlineMat(true);
+  }
+  const mat = (skin ? STYLE.outlineSkin : STYLE.outline) as THREE.MeshBasicMaterial;
+  let o: THREE.Mesh;
+  if (skin) {
+    const sm = m as THREE.SkinnedMesh;
+    const so = new THREE.SkinnedMesh(sm.geometry, mat);
+    so.bind(sm.skeleton, sm.bindMatrix);
+    o = so;
+  } else if ((m as THREE.InstancedMesh).isInstancedMesh) {
+    const im = m as THREE.InstancedMesh;
+    const io = new THREE.InstancedMesh(im.geometry, mat, im.count);
+    io.instanceMatrix = im.instanceMatrix;
+    io.onBeforeRender = () => {
+      io.count = im.count;
+    };
+    o = io;
+  } else o = new THREE.Mesh(m.geometry, mat);
+  o.userData.outline = true;
+  o.castShadow = false;
+  o.receiveShadow = false;
+  o.frustumCulled = m.frustumCulled;
+  o.matrixAutoUpdate = false;
+  m.add(o);
+}
+function stylizeMesh(m: THREE.Mesh, toon: boolean): void {
+  const mats = Array.isArray(m.material) ? m.material : [m.material];
+  const conv = mats.map((c) => {
+    const o = origOf(c);
+    // warna mungkin ditukar semasa gaya Kartun (pakaian watak): bawa ke bahan baharu
+    const next = toon ? toonOf(o) : o;
+    if (next !== c && c !== o) (next as LitMat).color.copy((c as LitMat).color).multiplyScalar((next.userData.k ?? 1) / (c.userData.k ?? 1));
+    return next;
+  });
+  if (conv.some((c, i) => c !== mats[i])) m.material = Array.isArray(m.material) ? conv : conv[0];
+  const lines = m.children.filter((x) => x.userData.outline);
+  if (toon && conv[0] !== origOf(conv[0])) {
+    if (!lines.length && wantOutline(m, conv[0])) addOutline(m);
+  } else for (const c of lines) m.remove(c);
+}
+// dipanggil setiap bingkai; imbas adegan 2× sesaat (objek & watak yang baru dimuat)
+function gfxStyleFrame(force = false): void {
+  if (!R3.scene || !R3.renderer) return;
+  const now = performance.now();
+  if (!force && now - STYLE.t < 500) return;
+  STYLE.t = now;
+  const toon = gfxToon();
+  const r = R3.renderer;
+  r.getDrawingBufferSize(STYLE.res.value);
+  STYLE.px.value = 1.5 * r.getPixelRatio();
+  r.toneMappingExposure = toon ? 1.0 : 0.92;
+  const list: THREE.Mesh[] = [];
+  R3.scene.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || m.userData.outline || m.userData.gy === STYLE.epoch) return;
+    list.push(m);
+  });
+  for (const m of list) {
+    m.userData.gy = STYLE.epoch;
+    stylizeMesh(m, toon);
+  }
+}
+function setGaya(g: Gaya): void {
+  SET.gaya = g;
+  saveSettings();
+  // garis luar bergantung pada tahap kualiti: bina semula dunia
+  disposeWorld();
+  STYLE.epoch++;
+  gfxStyleFrame(true);
 }

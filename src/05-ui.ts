@@ -56,6 +56,7 @@ interface Settings {
   avatar: "kartun" | "asal";
   grafik: Grafik;
   grafikAuto: boolean;
+  gaya: Gaya;
 }
 let SET: Settings = {
   zoom: 1,
@@ -72,6 +73,7 @@ let SET: Settings = {
   // telefon bermula pada Rendah supaya lancar; komputer pada Tinggi
   grafik: window.matchMedia("(pointer: coarse)").matches ? "rendah" : "tinggi",
   grafikAuto: true,
+  gaya: "realistik",
 };
 function loadSettings(): void {
   const s = loadJSON<Partial<Settings>>(CONFIG.settingsKey);
@@ -888,6 +890,8 @@ function openSettings(): void {
 <label for="setGrafik">Kualiti grafik 3D</label>
 <select id="setGrafik">${GRAFIK_ORDER.map((g) => `<option value="${g}" ${SET.grafik === g ? "selected" : ""}>${{ rendah: "Rendah · paling laju (telefon)", sederhana: "Sederhana · bayang-bayang & kilauan marmar/emas", tinggi: "Tinggi · + cahaya bersinar (komputer)" }[g]}</option>`).join("")}</select>
 <label class="tg"><input type="checkbox" id="setGrafikAuto" ${SET.grafikAuto ? "checked" : ""}> Turunkan kualiti secara automatik jika game perlahan</label>
+<label for="setGaya">Gaya grafik 3D</label>
+<select id="setGaya">${GAYA_ORDER.map((g) => `<option value="${g}" ${SET.gaya === g ? "selected" : ""}>${{ realistik: "Realistik · marmar & emas berkilat", kartun: "Kartun (cozy) · warna lembut & garis luar" }[g]}</option>`).join("")}</select>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
 <label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
@@ -921,6 +925,10 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
   el<HTMLSelectElement>("setGrafik").onchange = (e) => {
     const v = (e.target as HTMLSelectElement).value as Grafik;
     setGrafik(GRAFIK_ORDER.includes(v) ? v : "rendah");
+  };
+  el<HTMLSelectElement>("setGaya").onchange = (e) => {
+    const v = (e.target as HTMLSelectElement).value as Gaya;
+    setGaya(GAYA_ORDER.includes(v) ? v : "realistik");
   };
   el<HTMLInputElement>("setGrafikAuto").onchange = (e) => {
     SET.grafikAuto = (e.target as HTMLInputElement).checked;
