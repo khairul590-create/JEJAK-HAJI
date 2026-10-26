@@ -170,6 +170,10 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold-hi); o
 .mm-head b { color: var(--gold-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .saie-strip { position: absolute; right: var(--gx-r); top: 50%; transform: translateY(-50%); z-index: 2; width: 62px; padding: 7px 4px; display: grid; justify-items: center; gap: 4px; }
 .saie-strip b { font-size: 9.5px; font-weight: 800; letter-spacing: 0.04em; color: var(--gold-hi); }
+.tawaf-dial { position: absolute; right: var(--gx-r); top: 50%; transform: translateY(-50%); z-index: 2; width: 112px; padding: 7px 6px; display: grid; justify-items: center; gap: 4px; }
+.tawaf-dial b { font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--gold-hi); }
+#tdCv { width: 98px; height: 98px; display: block; }
+@media (max-width: 760px) { .tawaf-dial { width: 92px; } #tdCv { width: 80px; height: 80px; } }
 #ssCv { width: 30px; height: clamp(96px, 22vh, 220px); display: block; }
 .ss-n { font-family: var(--f-disp); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
 #mini { width: 100%; aspect-ratio: 16 / 11; max-width: 100%; border-radius: 10px; background: #d9c7a0; display: block; cursor: zoom-in; }

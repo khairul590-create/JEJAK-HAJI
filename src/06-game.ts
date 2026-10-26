@@ -1443,7 +1443,10 @@ function render(): void {
   // sasaran & sorotan interaksi
   const target = started ? stepTarget() : null;
   if (target && SET.arrow) drawTargetRing(target);
-  if (started) drawSaieFloor();
+  if (started) {
+    drawSaieFloor();
+    drawTawafFloor();
+  }
   if (started && bestInteract && bestInteract.ring && bestInteract.enabled()) {
     const pulse = 0.5 + 0.5 * Math.sin(T.time * 5);
     ctx.strokeStyle = `rgba(255,255,255,${0.5 + pulse * 0.4})`;
@@ -1541,6 +1544,87 @@ function drawSaieFloor(): void {
     ctx.restore();
   }
 }
+// anak panah tawaf lawan arah jam di lantai mataf
+function drawTawafFloor(): void {
+  if (scene.id !== "makkah" || !tawafKind() || !SET.arrow) return;
+  for (const r of [150, 250]) {
+    const n = Math.round((TAU * r) / 40);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU;
+      const x = Math.cos(a) * r;
+      const y = -Math.sin(a) * r;
+      if (!inView(x, y, 20)) continue;
+      const al = 0.18 + 0.4 * (0.5 + 0.5 * Math.sin(T.time * 5 - (i % 3) * 2.1));
+      ctx.save();
+      ctx.translate(x, y);
+      // tangen lawan arah jam dalam koordinat skrin (y ke bawah): (-sin a, -cos a)
+      ctx.rotate(Math.atan2(-Math.cos(a), -Math.sin(a)) + Math.PI / 2);
+      ctx.fillStyle = `rgba(61,143,224,${al})`;
+      poly(ctx, [0, -10, 9, 0, 4, 0, 4, 9, -4, 9, -4, 0, -9, 0]);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// dial kemajuan tawaf: Kaabah di tengah, garisan mula, kedudukan & pusingan semasa
+function drawTawafDial(): void {
+  const box = el("tawafDial");
+  const kind = started && scene.id === "makkah" ? tawafKind() : null;
+  box.hidden = !kind;
+  if (!kind) return;
+  const cv = el<HTMLCanvasElement>("tdCv");
+  const rect = cv.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(40, Math.round(rect.width));
+  if (cv.width !== w * dpr) {
+    cv.width = w * dpr;
+    cv.height = w * dpr;
+  }
+  const c = cv.getContext("2d") as CanvasRenderingContext2D;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, w);
+  const cx = w / 2;
+  const R = w / 2 - 6;
+  const k = R / MATAF_R;
+  c.fillStyle = "rgba(255,255,255,.14)";
+  circ(c, cx, cx, R);
+  c.fill();
+  // garisan Hajarul Aswad (timur) & lampu hijau
+  c.strokeStyle = "#3fe08a";
+  c.lineWidth = 2.5;
+  line(c, cx + KS * k, cx, cx + R, cx);
+  // Kaabah (penjuru menghala ke arah mata angin)
+  c.fillStyle = "#151515";
+  poly(c, [cx + KS * k, cx, cx, cx - KS * k, cx - KS * k, cx, cx, cx + KS * k]);
+  c.fill();
+  // Hijir Ismail
+  c.strokeStyle = "#f1eee6";
+  c.lineWidth = 2;
+  c.beginPath();
+  c.arc(cx + HIJR.x * k, cx + HIJR.y * k, HIJR.r * k, (165 * Math.PI) / 180, (285 * Math.PI) / 180);
+  c.stroke();
+  // kemajuan pusingan semasa (lawan arah jam bermula dari garisan)
+  const t = T.tawaf;
+  if (t.valid && t.cum > 0) {
+    c.strokeStyle = "#f2c230";
+    c.lineWidth = 4;
+    c.beginPath();
+    c.arc(cx, cx, R - 2, 0, -clamp(t.cum, 0, TAU), true);
+    c.stroke();
+  }
+  // jemaah
+  const px = cx + clamp(P.x * k, -R, R);
+  const py = cx + clamp(P.y * k, -R, R);
+  c.fillStyle = "#2f7de0";
+  c.strokeStyle = "#fff";
+  c.lineWidth = 2;
+  circ(c, px, py, 5);
+  c.fill();
+  c.stroke();
+  el("tdN").textContent = `${S.tawafLaps}/7`;
+}
+
 // anak panah hijau "KAABAH" di sekeliling watak
 function drawKaabahHint(): void {
   const a = Math.atan2(-P.y, -P.x);
@@ -1926,6 +2010,7 @@ function update(dt: number): void {
     T.miniT = 0.12;
     if (SET.mini) drawMini();
     drawSaieStrip();
+    drawTawafDial();
   }
   T.saveT -= dt;
   if (T.saveT <= 0) {

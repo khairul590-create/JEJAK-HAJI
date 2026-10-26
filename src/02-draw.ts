@@ -39,6 +39,8 @@ type M3 =
   | { k: "pole"; x: number; y: number }
   | { k: "mountains"; x0: number; y0: number; x1: number; y1: number; col: string; seed: number }
   | { k: "stars" }
+  // mataf bertingkat (fasad dalam bulatan) & anak panah tawaf
+  | { k: "matafRing"; r: number; h: number; arrows: number[] }
   // dewan Mas'a: west/east = bukaan pintu [y1, y2] pada dinding barat/timur
   | { k: "masa"; x0: number; x1: number; y0: number; y1: number; g1: number; g2: number; west: [number, number][]; east: [number, number][] };
 let M3_TARGET: M3[] | null = null;

@@ -617,7 +617,88 @@ function addMaqam(g: THREE.Group, x: number, y: number): void {
   g.add(mesh(new THREE.ConeGeometry(0.1, 0.6, 6), lam("#e6c25a"), X, 2.8, Z, false));
 }
 
+// Serambi Uthmaniyah: gerbang runcing di antara 30 tiang (sama dengan tiang 2D di r 418,
+// sudut i/30·TAU + 0.05) dan deretan kubah kecil di atas bumbung.
+const PORTICO_N = 30;
+const PORTICO_A0 = 0.05;
+function porticoArchTexture(): THREE.CanvasTexture {
+  return canvasTex(
+    256,
+    160,
+    (c) => {
+      c.fillStyle = "#efe4cc";
+      c.fillRect(0, 0, 256, 160);
+      // bukaan gerbang runcing (lutsinar)
+      const x0 = 30;
+      const x1 = 226;
+      const spring = 78;
+      const apex = 16;
+      const mid = (x0 + x1) / 2;
+      const archPath = (inset: number): void => {
+        c.beginPath();
+        c.moveTo(x0 + inset, 160);
+        c.lineTo(x0 + inset, spring);
+        c.quadraticCurveTo(x0 + inset, apex + inset * 1.4, mid, apex + inset);
+        c.quadraticCurveTo(x1 - inset, apex + inset * 1.4, x1 - inset, spring);
+        c.lineTo(x1 - inset, 160);
+      };
+      // batu bersilih (ablaq) di sekeliling gerbang
+      archPath(-12);
+      c.lineWidth = 14;
+      c.setLineDash([10, 10]);
+      c.strokeStyle = "#b9946a";
+      c.stroke();
+      c.setLineDash([]);
+      archPath(-4);
+      c.lineWidth = 3;
+      c.strokeStyle = "#c9a24a";
+      c.stroke();
+      c.globalCompositeOperation = "destination-out";
+      archPath(0);
+      c.closePath();
+      c.fill();
+      c.globalCompositeOperation = "source-over";
+      // cornice atas
+      c.fillStyle = "#e2d3b3";
+      c.fillRect(0, 0, 256, 10);
+      c.fillStyle = "#c9a24a";
+      c.fillRect(0, 9, 256, 3);
+    },
+    true
+  );
+}
 function addArcade(g: THREE.Group, r0: number, r1: number, h: number): void {
+  // fasad gerbang di tepi dalam & luar serambi
+  const H = h * K3 + 0.6;
+  const tex = porticoArchTexture();
+  tex.repeat.set(PORTICO_N, 1);
+  // CylinderGeometry: theta 0 menghala ke +Z (selatan peta); tiang i berada pada theta = a_i + PI/2
+  tex.offset.set(-(((PORTICO_A0 + Math.PI / 2) / TAU) * PORTICO_N) % 1, 0);
+  const am = lam("#ffffff", { map: tex, alphaTest: 0.5, side: THREE.DoubleSide });
+  for (const r of [r0, r1]) {
+    const cy = new THREE.CylinderGeometry(r * K3, r * K3, H, PORTICO_N * 6, 1, true);
+    g.add(mesh(cy, am, 0, H / 2, 0, false));
+  }
+  // kubah kecil (3 bagi setiap petak) & hiasan puncak emas
+  const domes: THREE.BufferGeometry[] = [];
+  const tips: THREE.BufferGeometry[] = [];
+  const rm = ((r0 + r1) / 2) * K3;
+  for (let i = 0; i < PORTICO_N * 3; i++) {
+    const a = ((i + 0.5) / (PORTICO_N * 3)) * TAU + PORTICO_A0;
+    const x = Math.cos(a) * rm;
+    const z = -Math.sin(a) * rm;
+    const d = new THREE.SphereGeometry(1.05, 12, 6, 0, TAU, 0, Math.PI / 2);
+    d.translate(x, H + 0.55, z);
+    domes.push(d);
+    const drum = new THREE.CylinderGeometry(1.08, 1.12, 0.55, 12, 1, true);
+    drum.translate(x, H + 0.28, z);
+    domes.push(drum);
+    const tip = new THREE.ConeGeometry(0.09, 0.55, 6);
+    tip.translate(x, H + 1.85, z);
+    tips.push(tip);
+  }
+  g.add(mesh(mergeGeos(domes), lam("#f3eee2")));
+  g.add(mesh(mergeGeos(tips), lam("#d4ab4f"), 0, 0, 0, false));
   const sh = new THREE.Shape();
   sh.absarc(0, 0, r1 * K3, 0, TAU, false);
   const hole = new THREE.Path();
@@ -627,6 +708,134 @@ function addArcade(g: THREE.Group, r0: number, r1: number, h: number): void {
   ge.rotateX(Math.PI / 2);
   ge.translate(0, h * K3 + 0.6, 0);
   g.add(mesh(ge, lam("#e9dcc0")));
+}
+
+// ---------------------------------------------------------------------
+//  Mataf bertingkat: fasad bulat 3 tingkat yang menghadap Kaabah (hanya muka dalam
+//  dilukis, jadi kamera di luar bulatan tidak terhalang), lampu hijau penanda
+//  garisan Hajarul Aswad, dan anak panah tawaf lawan arah jam di lantai.
+// ---------------------------------------------------------------------
+const TAWAF3 = { groups: [] as THREE.Mesh[] };
+function matafRingTexture(): THREE.CanvasTexture {
+  // satu petak: 7 m lebar × 16 m tinggi
+  return canvasTex(
+    224,
+    512,
+    (c) => {
+      const m = 32; // px setiap meter
+      const Y = (h: number): number => 512 - h * m;
+      c.fillStyle = "#f6f2e9";
+      c.fillRect(0, 0, 224, 512);
+      const arch = (x0: number, x1: number, y0: number, top: number, fill: string | null): void => {
+        const r = (x1 - x0) / 2;
+        c.beginPath();
+        c.moveTo(x0, Y(y0));
+        c.lineTo(x0, Y(top) + r);
+        c.arc(x0 + r, Y(top) + r, r, Math.PI, 0);
+        c.lineTo(x1, Y(y0));
+        c.closePath();
+        if (fill) {
+          c.fillStyle = fill;
+          c.fill();
+        }
+        return;
+      };
+      // tingkat bawah: gerbang terbuka (lutsinar)
+      c.save();
+      c.globalCompositeOperation = "destination-out";
+      arch(26, 198, 0, 5.0, "#000");
+      c.restore();
+      c.strokeStyle = "#c9a24a";
+      c.lineWidth = 4;
+      arch(26, 198, 0, 5.0, null);
+      c.stroke();
+      // lantai tingkat 1 & 2: balustrad, gerbang gelap, jemaah
+      for (const [b, t] of [
+        [5.6, 10.4],
+        [10.9, 15.0],
+      ]) {
+        c.fillStyle = "#e4dac6";
+        c.fillRect(0, Y(b), 224, 0.35 * m);
+        c.fillStyle = "#c9a24a";
+        c.fillRect(0, Y(b) - 3, 224, 3);
+        arch(30, 194, b + 0.35, t, "#5e4e3c");
+        // jemaah di tingkat atas (siluet)
+        for (let k = 0; k < 6; k++) {
+          const px = 46 + k * 26 + (k % 2) * 4;
+          c.fillStyle = k % 3 === 0 ? "#3a3027" : "#f2efe6";
+          c.fillRect(px - 5, Y(b + 0.4 + 1.35), 10, 1.35 * m);
+          c.beginPath();
+          c.arc(px, Y(b + 0.4 + 1.55), 5, 0, TAU);
+          c.fillStyle = "#8a6a50";
+          c.fill();
+        }
+        c.fillStyle = "#e9dfcb";
+        for (let x = 30; x < 194; x += 12) c.fillRect(x, Y(b + 1.1), 5, 0.75 * m);
+        c.fillStyle = "#c9a24a";
+        c.fillRect(30, Y(b + 1.1), 164, 3);
+      }
+      // cornice
+      c.fillStyle = "#e2d3b3";
+      c.fillRect(0, 0, 224, 0.9 * m);
+      c.fillStyle = "#c9a24a";
+      c.fillRect(0, 0.9 * m - 4, 224, 4);
+    },
+    true
+  );
+}
+function addMatafRing(g: THREE.Group, d: Extract<M3, { k: "matafRing" }>): void {
+  const R = d.r * K3;
+  const H = d.h * K3;
+  const bays = Math.round((TAU * R) / 7);
+  const tex = matafRingTexture();
+  tex.repeat.set(bays, 1);
+  const ring = mesh(new THREE.CylinderGeometry(R, R, H, bays * 4, 1, true), lam("#ffffff", { map: tex, alphaTest: 0.5, side: THREE.BackSide }), 0, H / 2, 0, false);
+  ring.receiveShadow = false;
+  g.add(ring);
+  // lampu hijau di dinding, segaris dengan Hajarul Aswad (arah timur)
+  const glow = basic("#3fe08a");
+  g.add(mesh(new THREE.BoxGeometry(0.3, 1.2, 2.4), glow, R - 0.3, 6.6, 0, false));
+  g.add(mesh(new THREE.BoxGeometry(0.2, 5.4, 0.5), glow, R - 0.25, 2.7, 0, false));
+  const halo = mesh(new THREE.PlaneGeometry(4.5, 4.5), basic("#6dffb0", { transparent: true, opacity: 0.3, depthWrite: false }), R - 0.5, 6.6, 0, false);
+  halo.rotation.y = -Math.PI / 2;
+  g.add(halo);
+  // anak panah tawaf (lawan arah jam dilihat dari atas), 3 kumpulan untuk kesan mengalir
+  const sh = new THREE.Shape();
+  sh.moveTo(0, 0.9);
+  sh.lineTo(0.8, -0.1);
+  sh.lineTo(0.3, -0.1);
+  sh.lineTo(0.3, -0.8);
+  sh.lineTo(-0.3, -0.8);
+  sh.lineTo(-0.3, -0.1);
+  sh.lineTo(-0.8, -0.1);
+  sh.closePath();
+  const parts: THREE.BufferGeometry[][] = [[], [], []];
+  for (const rr of d.arrows) {
+    const n = Math.round((TAU * rr * K3) / 4);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU;
+      const ge = new THREE.ShapeGeometry(sh);
+      ge.rotateX(-Math.PI / 2);
+      ge.rotateY(a); // arah tangen (-sin a, -cos a) = lawan arah jam
+      ge.translate(Math.cos(a) * rr * K3, 0.06, -Math.sin(a) * rr * K3);
+      parts[i % 3].push(ge);
+    }
+  }
+  TAWAF3.groups = parts.map((p) => {
+    const mm = mesh(mergeGeos(p), basic("#3d8fe0", { transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }), 0, 0, 0, false);
+    mm.visible = false;
+    mm.renderOrder = 2;
+    g.add(mm);
+    return mm;
+  });
+}
+function updateTawaf3D(): void {
+  const on = started && scene.id === "makkah" && tawafKind() !== null && SET.arrow;
+  TAWAF3.groups.forEach((m, k) => {
+    m.visible = on;
+    // kesan mengalir lawan arah jam: fasa beranjak dari kumpulan 0 → 1 → 2
+    if (on) (m.material as THREE.MeshBasicMaterial).opacity = 0.2 + 0.45 * (0.5 + 0.5 * Math.sin(T.time * 5 - k * 2.1));
+  });
 }
 
 function addGate(g: THREE.Group, x0: number, x1: number, y: number): void {
@@ -1390,6 +1599,7 @@ function ensureWorld(): void {
   mathInit();
   MASA3.roof = null;
   MASA3.arrows = [];
+  TAWAF3.groups = [];
   MASA3.box = null;
   BUILD_TEX = [];
   const sc = scene;
@@ -1523,6 +1733,9 @@ function addM3(g: THREE.Group, d: M3, lamps: THREE.Vector3[], seed: number): voi
       break;
     case "masa":
       addMasa(g, d);
+      break;
+    case "matafRing":
+      addMatafRing(g, d);
       break;
   }
 }
@@ -1827,6 +2040,7 @@ function update3D(dt: number): void {
     }
   }
   updateMasa3D(cam);
+  updateTawaf3D();
   // matahari mengikut pemain (supaya bayang sentiasa tajam di sekeliling)
   if (R3.sun) {
     R3.sun.position.set(tx + 34, 70, tz + 26);

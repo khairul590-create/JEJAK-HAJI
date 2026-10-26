@@ -503,6 +503,7 @@ function buildMakkah(): Scene {
   m3({ k: "kaabah" });
   m3({ k: "maqam", x: 68, y: -68 });
   m3({ k: "arcade", r0: 405, r1: 431, h: 42 });
+  m3({ k: "matafRing", r: 446, h: 160, arrows: [150, 250] });
   m3({ k: "gate", x0: -80, x1: 80, y: 600 });
   m3({ k: "green", x0: MASA.x0, x1: MASA.x1, y: MASA.g1 });
   m3({ k: "green", x0: MASA.x0, x1: MASA.x1, y: MASA.g2 });
