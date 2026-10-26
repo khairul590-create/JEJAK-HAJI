@@ -43,6 +43,12 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   (Panduan → Panduan jemaah).
 - **Tawaf 3D:** serambi Uthmaniyah dengan gerbang runcing berbatu silih dan deretan kubah kecil, mataf bertingkat tiga,
   lampu hijau penanda garisan Hajarul Aswad, anak panah lawan arah jam di lantai dan dial kemajuan pusingan.
+- **Wukuf 3D:** gerbang papan sempadan Arafah dwibahasa, tiang semburan air berkabus, Masjid Namirah enam menara, Jabal Rahmah
+  berbatu dengan jemaah di lereng, penunjuk ARAH KIBLAT (BERDOA menghadap kiblat), dial matahari Zohor → Maghrib dan langit
+  senja menjelang akhir wukuf.
+- **Lontar 3D:** jambatan Jamarat bertingkat (lantai 12 m & 24 m berlubang, dinding jamrah menembusi setiap tingkat), papan
+  nama jamrah Arab & Melayu, anak panah aliran sehala ke barat, panel tertib Ula → Wusta → Aqabah dan ARAH KIBLAT untuk
+  berdoa selepas Jamrah Ula & Wusta.
 - **Avatar kartun:** watak kepala besar dan mata besar dengan jalan melantun dan larian (ramal), dijana oleh
   `blender/kartun.py` (Tetapan → *Gaya avatar 3D*). Panduan membina avatar dan persekitaran sendiri dengan betul:
   [docs/AVATAR-PIXAR.md](docs/AVATAR-PIXAR.md).

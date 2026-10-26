@@ -174,6 +174,12 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold-hi); o
 .tawaf-dial b { font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--gold-hi); }
 #tdCv { width: 98px; height: 98px; display: block; }
 @media (max-width: 760px) { .tawaf-dial { width: 92px; } #tdCv { width: 80px; height: 80px; } }
+.tawaf-dial.wide { width: 150px; }
+#wdCv { width: 136px; height: 64px; display: block; }
+#lpCv { width: 136px; height: 56px; display: block; }
+.wd-s { font-size: 10px; font-weight: 800; color: #9ff0bf; text-align: center; line-height: 1.25; }
+.wd-s.bad { color: #ff9d86; }
+@media (max-width: 760px) { .tawaf-dial.wide { width: 120px; } #wdCv, #lpCv { width: 108px; } }
 #ssCv { width: 30px; height: clamp(96px, 22vh, 220px); display: block; }
 .ss-n { font-family: var(--f-disp); font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
 #mini { width: 100%; aspect-ratio: 16 / 11; max-width: 100%; border-radius: 10px; background: #d9c7a0; display: block; cursor: zoom-in; }

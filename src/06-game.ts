@@ -78,6 +78,7 @@ const T = {
   saveT: 0,
   enWarn: 0,
   minumCd: 0,
+  kiblatT: 0,
   hudT: 0,
   miniT: 0,
   running: false,
@@ -725,6 +726,15 @@ function saieCounter(): Counter {
       : null,
   };
 }
+// Penunjuk arah: Kaabah (bukit saie), kiblat (wukuf & selepas Jamrah Ula/Wusta).
+// Kiblat dari Arafah dan Mina menghala ke barat (Makkah) dalam peta game.
+function dirHint(): { x: number; y: number; label: string } | null {
+  if (needKaabahHint()) return { x: 0, y: 0, label: "ARAH KAABAH" };
+  if (!started) return null;
+  if (scene.id === "arafah" && isStep("wukuf") && insideArafah(P) && !T.wukuf.praying) return { x: P.x - 1000, y: P.y, label: "ARAH KIBLAT" };
+  if (scene.id === "mina" && T.kiblatT > 0) return { x: P.x - 1000, y: P.y, label: "ARAH KIBLAT" };
+  return null;
+}
 // Penunjuk arah Kaabah: di atas bukit sebelum berdoa (diilhamkan oleh prototaip saie 3D jemaah lain)
 function needKaabahHint(): boolean {
   if (!started || scene.id !== "makkah" || !inMasa(P)) return false;
@@ -842,6 +852,7 @@ function finishThrows(sid: string, j: JamId): void {
     toast("Lontaran Jamrah Aqabah selesai. Seterusnya: selesaikan dam dan bercukur.", "ok", 5200);
   } else if (sid === "ula" || sid === "wusta") {
     toast(`${JAM[j].name} selesai. Sunat menghadap kiblat dan berdoa sebelum ke jamrah seterusnya.`, "ok", 5200);
+    T.kiblatT = 14; // tunjuk ARAH KIBLAT seketika
   } else toast("Ketiga-tiga jamrah selesai untuk hari ini.", "ok", 4200);
   later(() => finishStep(sid), 450);
 }
@@ -872,6 +883,10 @@ function toggleWukuf(): void {
   }
   T.wukuf.praying = true;
   T.wukuf.cardT = 0;
+  // sunat berwukuf menghadap kiblat: Makkah di sebelah barat Arafah
+  P.dx = -1;
+  P.dy = 0;
+  if (R3.active && C3.mode !== "top") C3.yaw = Math.atan2(-P.dx, -P.dy);
   toast("Berwukuf… kekal diam, berdoa, berzikir dan beristighfar.", "info", 3600);
 }
 function stopWukuf(msg?: string): void {
@@ -1408,6 +1423,8 @@ function toScreen(x: number, y: number): Vec {
 function currentLight(): Light {
   const st = curStep();
   if (scene.id === "muzdalifah") return "night";
+  // wukuf berlangsung hingga matahari terbenam: langit beransur keemasan
+  if (scene.id === "arafah" && isStep("wukuf") && S.wukuf >= 0.7) return "dusk";
   if (st && st.scene === scene.id && st.light) return st.light;
   return "day";
 }
@@ -1446,6 +1463,7 @@ function render(): void {
   if (started) {
     drawSaieFloor();
     drawTawafFloor();
+    drawJamaratFloor();
   }
   if (started && bestInteract && bestInteract.ring && bestInteract.enabled()) {
     const pulse = 0.5 + 0.5 * Math.sin(T.time * 5);
@@ -1521,7 +1539,8 @@ function render(): void {
   if (started) {
     drawNameTag();
     if (target && SET.arrow) drawArrow(target);
-    if (needKaabahHint()) drawKaabahHint();
+    const hint = dirHint();
+    if (hint) drawDirHint(hint);
   }
 }
 
@@ -1565,6 +1584,131 @@ function drawTawafFloor(): void {
       ctx.restore();
     }
   }
+}
+
+// anak panah aliran sehala di Jamarat (timur → barat: Ula → Wusta → Aqabah)
+function lontarActive(): boolean {
+  return scene.id === "mina" && (expectedJamrah() !== null || isStep("aqabah_go", "batu_tasyrik"));
+}
+function drawJamaratFloor(): void {
+  if (!lontarActive() || !SET.arrow) return;
+  let i = 0;
+  for (let x = 660; x >= -660; x -= 60, i++) {
+    if (!inView(x, -350, 20)) continue;
+    const al = 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(T.time * 4 - i * 0.9));
+    ctx.save();
+    ctx.translate(x, -350);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = `rgba(61,143,224,${al})`;
+    poly(ctx, [0, -11, 10, 0, 4, 0, 4, 10, -4, 10, -4, 0, -10, 0]);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// panel tertib lontar: Ula → Wusta → Aqabah dengan kiraan setiap jamrah hari ini
+function drawLontarPanel(): void {
+  const box = el("lontarPanel");
+  const on = started && lontarActive();
+  box.hidden = !on;
+  if (!on) return;
+  const cv = el<HTMLCanvasElement>("lpCv");
+  const rect = cv.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(60, Math.round(rect.width));
+  const h = Math.max(40, Math.round(rect.height));
+  if (cv.width !== w * dpr || cv.height !== h * dpr) {
+    cv.width = w * dpr;
+    cv.height = h * dpr;
+  }
+  const c = cv.getContext("2d") as CanvasRenderingContext2D;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  const nahar = isStep("aqabah_go", "aqabah");
+  const sids: Record<JamId, string> = { ula: "ula", wusta: "wusta", aqabah: nahar ? "aqabah" : "aqabah2" };
+  const cur = expectedJamrah() ?? (isStep("aqabah_go") ? "aqabah" : isStep("batu_tasyrik") ? "ula" : null);
+  const order: JamId[] = ["ula", "wusta", "aqabah"];
+  const names = ["Ula", "Wusta", "Aqabah"];
+  const cy = 22;
+  order.forEach((j, k) => {
+    const cx = (w / 3) * (k + 0.5);
+    if (k < 2) {
+      c.strokeStyle = "rgba(255,255,255,.35)";
+      c.lineWidth = 2;
+      line(c, cx + 15, cy, cx + w / 3 - 15, cy);
+    }
+    const na = nahar && j !== "aqabah";
+    const n = S.throws[sids[j]] ?? 0;
+    const done = !na && n >= 7;
+    const now = cur === j;
+    c.fillStyle = na ? "rgba(255,255,255,.08)" : done ? "#2fbf6a" : now ? "#f2c230" : "rgba(255,255,255,.18)";
+    circ(c, cx, cy, now ? 14 : 12);
+    c.fill();
+    c.fillStyle = now ? "#3a2a04" : "#fff";
+    c.font = `800 ${now ? 11 : 10}px ${FONT_B}`;
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(na ? "—" : done ? "✓" : `${n}/7`, cx, cy + 0.5);
+    c.fillStyle = na ? "rgba(255,255,255,.4)" : "#fff";
+    c.font = `800 9.5px ${FONT_B}`;
+    c.fillText(names[k], cx, cy + 25);
+  });
+  el("lpN").textContent = nahar ? `10 Zulhijjah · Aqabah sahaja · batu ${S.pebbles}` : `Hari Tasyrik · batu ${S.pebbles}`;
+}
+
+// dial matahari wukuf: dari gelincir (Zohor) hingga terbenam (Maghrib)
+function drawWukufDial(): void {
+  const box = el("wukufDial");
+  const on = started && scene.id === "arafah" && isStep("wukuf");
+  box.hidden = !on;
+  if (!on) return;
+  const cv = el<HTMLCanvasElement>("wdCv");
+  const rect = cv.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(60, Math.round(rect.width));
+  const h = Math.max(36, Math.round(rect.height));
+  if (cv.width !== w * dpr || cv.height !== h * dpr) {
+    cv.width = w * dpr;
+    cv.height = h * dpr;
+  }
+  const c = cv.getContext("2d") as CanvasRenderingContext2D;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  const cx = w / 2;
+  const base = h - 8;
+  const R = Math.min(w / 2 - 10, h - 14);
+  c.strokeStyle = "rgba(255,255,255,.3)";
+  c.lineWidth = 2;
+  c.setLineDash([3, 4]);
+  c.beginPath();
+  c.arc(cx, base, R, Math.PI, 0);
+  c.stroke();
+  c.setLineDash([]);
+  c.strokeStyle = "rgba(255,255,255,.5)";
+  line(c, 4, base, w - 4, base);
+  // lengkok yang telah dilalui
+  const t = clamp(S.wukuf, 0, 1);
+  c.strokeStyle = "#f2c230";
+  c.lineWidth = 3;
+  c.beginPath();
+  c.arc(cx, base, R, Math.PI, Math.PI + Math.PI * t);
+  c.stroke();
+  const a = Math.PI + Math.PI * t;
+  const sx = cx + Math.cos(a) * R;
+  const sy = base + Math.sin(a) * R;
+  c.fillStyle = t >= 0.7 ? "#ff9b58" : "#ffd166";
+  circ(c, sx, sy, 7);
+  c.fill();
+  c.fillStyle = "rgba(255,255,255,.75)";
+  c.font = `800 8.5px ${FONT_B}`;
+  c.textAlign = "left";
+  c.fillText("Zohor", 2, base - 3);
+  c.textAlign = "right";
+  c.fillText("Maghrib", w - 2, base - 3);
+  const inside = insideArafah(P);
+  const st = el("wdS");
+  st.textContent = inside ? "Dalam sempadan ✓" : "Luar sempadan ✗";
+  st.className = "wd-s" + (inside ? "" : " bad");
 }
 
 // dial kemajuan tawaf: Kaabah di tengah, garisan mula, kedudukan & pusingan semasa
@@ -1625,9 +1769,9 @@ function drawTawafDial(): void {
   el("tdN").textContent = `${S.tawafLaps}/7`;
 }
 
-// anak panah hijau "KAABAH" di sekeliling watak
-function drawKaabahHint(): void {
-  const a = Math.atan2(-P.y, -P.x);
+// anak panah hijau (Kaabah / kiblat) di sekeliling watak
+function drawDirHint(h: { x: number; y: number; label: string }): void {
+  const a = Math.atan2(h.y - P.y, h.x - P.x);
   const s = toScreen(P.x, P.y - 20);
   const R = 62;
   const pulse = 1 + Math.sin(T.time * 5) * 0.08;
@@ -1642,7 +1786,7 @@ function drawKaabahHint(): void {
   ctx.fill();
   ctx.stroke();
   ctx.restore();
-  drawPill(s.x + Math.cos(a) * (R + 30), s.y + Math.sin(a) * (R + 30), "ARAH KAABAH", "#1f7a3f");
+  drawPill(s.x + Math.cos(a) * (R + 30), s.y + Math.sin(a) * (R + 30), h.label, "#1f7a3f");
 }
 function drawPill(x: number, y: number, text: string, bg: string): void {
   ctx.font = `800 11px ${FONT_B}`;
@@ -1969,6 +2113,7 @@ function update(dt: number): void {
   updateMiqatActivity(dt);
   T.throwCd -= dt;
   T.zamCd -= dt;
+  T.kiblatT -= dt;
   if (T.busy > 0) {
     T.busy -= dt;
     if (T.busy <= 0) {
@@ -2011,6 +2156,8 @@ function update(dt: number): void {
     if (SET.mini) drawMini();
     drawSaieStrip();
     drawTawafDial();
+    drawLontarPanel();
+    drawWukufDial();
   }
   T.saveT -= dt;
   if (T.saveT <= 0) {
@@ -2145,6 +2292,7 @@ else boot((HOT?.data as Partial<Save>) ?? null);
     cam.y = y;
   },
   finish: () => advance(),
+  closeModal: () => closeModal(),
   models: MODELS3D,
   C3,
   R3,

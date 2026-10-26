@@ -2129,9 +2129,11 @@ function buildMina() {
         if (Object.keys(JAM).some((j) => Math.abs(JAM[j].x - x) < 120))
             continue;
         sc.solids.push({ t: "r", x: x - 9, y: -300, w: 18, h: 14 });
+        // tiang penuh 24 m dibina bersama lantai jambatan (m3 "jamarat") supaya tersembunyi dalam kamera Atas
         m3({ k: "pillar", x, y: -293, h: 50, r: 8, col: "#c7c0b3" });
         sc.props.push({ y: -286, draw: (c) => box(c, x - 9, -300, 18, 14, 50, "#c7c0b3") });
     }
+    m3({ k: "jamarat", x0: -720, x1: 720, y0: -560, y1: -300, levels: [120, 240], flowY: -350 });
     tentGrid(sc, -300, -170, 8, 7, 112, 100, 84, 64, [4, 3]);
     // kaunter dam & khemah gunting
     sc.solids.push({ t: "r", x: -690, y: 10, w: 130, h: 60 });
@@ -2305,7 +2307,47 @@ function buildArafah() {
     sc.ambient = 0.45;
     // Masjid Namirah (sebahagian hadapan di luar Arafah)
     sc.solids.push({ t: "r", x: -520, y: -480, w: 270, h: 150 });
-    m3({ k: "bld", x: -520, y: -480, w: 270, d: 150, h: 58, col: "#eee8db", style: "arch", sign: "MASJID NAMIRAH", domes: [{ x: -385, y: -405, r: 34 }] });
+    m3({
+        k: "bld",
+        x: -520,
+        y: -480,
+        w: 270,
+        d: 150,
+        h: 58,
+        col: "#eee8db",
+        style: "arch",
+        sign: "MASJID NAMIRAH",
+        domes: [
+            { x: -385, y: -405, r: 34 },
+            { x: -455, y: -405, r: 20 },
+            { x: -315, y: -405, r: 20 },
+        ],
+    });
+    // Masjid Namirah mempunyai enam menara: dua di peta 2D (minaretProp), empat lagi untuk 3D
+    for (const [mx, my] of [
+        [-520, -405],
+        [-250, -405],
+        [-430, -480],
+        [-340, -480],
+    ])
+        m3({ k: "minaret", x: mx, y: my, h: 150, col: "#efe8da" });
+    m3({ k: "arafahGate", x: ARAFAH_X, ys: [-150, 300] });
+    m3({
+        k: "misters",
+        pts: [
+            [-200, 0],
+            [-60, 0],
+            [80, 0],
+            [220, 0],
+            [360, 0],
+            [500, 0],
+            [-200, 500],
+            [60, 500],
+            [320, 500],
+            [600, 260],
+            [600, -60],
+        ],
+    });
     sc.props.push({
         y: -330,
         draw: (c) => {
@@ -5128,12 +5170,7 @@ function addJamrah(g, x, y, rx, ry) {
     const t = wallTexture("#cfc6b2", "plain");
     t.repeat.set(3, 2);
     g.add(mesh(new THREE.BoxGeometry(11.6, 7.4, 1.2), lam("#ffffff", { map: t }), X, 3.7, Z));
-    // payung besar di atas jamrah
-    for (const dx of [-4.5, 4.5]) {
-        g.add(mesh(new THREE.CylinderGeometry(0.18, 0.22, 13, 8), lam("#e9e6de"), X + dx, 6.5, Z - 5.5));
-        const um = mesh(new THREE.ConeGeometry(6, 1.8, 10, 1, true), lam("#fbfaf4", { side: THREE.DoubleSide }), X + dx, 13.4, Z - 5.5);
-        g.add(um);
-    }
+    // (payung lama diganti lantai jambatan Jamarat; dinding menembusi setiap tingkat — addJamarat)
 }
 function addHill(g, x, y, rx, ry, h) {
     const [X, Z] = P3(x, y);
@@ -5151,7 +5188,255 @@ function addHill(g, x, y, rx, ry, h) {
     ge.computeVertexNormals();
     ge.scale(1, 1, ry / rx);
     g.add(mesh(ge, flat("#a98f6c"), X, (h * K3) / 2 - 0.4, Z));
-    g.add(mesh(new THREE.BoxGeometry(0.9, 5, 0.9), lam("#f7f3ea"), X, h * K3 + 2.0, Z));
+    // Jabal Rahmah: batu granit bertaburan, pelantar & tiang putih di puncak, jemaah di lereng
+    const H = h * K3;
+    const R = rx * K3;
+    const sz = ry / rx;
+    const rocks = [];
+    const people = [];
+    const heads = [];
+    for (let i = 0; i < 46; i++) {
+        const f = 0.15 + r() * 0.8;
+        const a = r() * TAU;
+        const rs = 0.6 + r() * 1.6;
+        const ge2 = new THREE.IcosahedronGeometry(rs, 0);
+        ge2.scale(1.2, 0.7, 1);
+        ge2.translate(X + Math.cos(a) * R * f, H * (1 - f) - 0.2, Z + Math.sin(a) * R * f * sz);
+        rocks.push(ge2);
+    }
+    g.add(mesh(mergeGeos(rocks), flat("#8b7356")));
+    g.add(mesh(new THREE.BoxGeometry(4.2, 0.6, 4.2), lam("#e9e3d6"), X, H - 0.1, Z));
+    g.add(mesh(new THREE.BoxGeometry(1.2, 8, 1.2), lam("#f7f3ea"), X, H + 4, Z));
+    g.add(mesh(new THREE.BoxGeometry(1.5, 0.4, 1.5), lam("#dcd5c4"), X, H + 0.4, Z));
+    for (let i = 0; i < 90; i++) {
+        const f = 0.22 + r() * 0.72;
+        const a = r() * TAU;
+        const px = X + Math.cos(a) * R * f;
+        const pz = Z + Math.sin(a) * R * f * sz;
+        const py = H * (1 - f) - 0.35;
+        const body = new THREE.CylinderGeometry(0.2, 0.3, 1.3, 8);
+        body.translate(px, py + 0.65, pz);
+        const head = new THREE.SphereGeometry(0.17, 10, 8);
+        head.translate(px, py + 1.45, pz);
+        people.push(body);
+        heads.push(head);
+    }
+    // jemaah berihram putih di lereng, kepala berwarna kulit
+    g.add(mesh(mergeGeos(people), lam("#fbfaf4"), 0, 0, 0, false));
+    g.add(mesh(mergeGeos(heads), lam("#b98a64"), 0, 0, 0, false));
+}
+// ---------------------------------------------------------------------
+//  Arafah: gerbang papan sempadan & tiang semburan air (kabus bergerak)
+// ---------------------------------------------------------------------
+const ARAFAH3 = { mist: [] };
+function addArafahGate(g, d) {
+    const tex = canvasTex(1024, 192, (c) => {
+        c.fillStyle = "#f2c230";
+        c.fillRect(0, 0, 1024, 192);
+        c.strokeStyle = "#4a3505";
+        c.lineWidth = 10;
+        c.strokeRect(8, 8, 1008, 176);
+        c.fillStyle = "#3a2a04";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.font = "700 64px Amiri, 'Noto Naskh Arabic', serif";
+        c.fillText("حدود عرفة", 512, 62);
+        c.font = "800 50px Nunito, 'Segoe UI', sans-serif";
+        c.fillText("SEMPADAN ARAFAH", 512, 140);
+    });
+    const face = lam("#ffffff", { map: tex });
+    const edge = lam("#f2c230");
+    const X = d.x * K3;
+    for (const y of d.ys) {
+        const Z = y * K3;
+        for (const dz of [-7.6, 7.6])
+            g.add(mesh(new THREE.BoxGeometry(0.5, 9.2, 0.5), lam("#6a5a44"), X, 4.6, Z + dz));
+        g.add(mesh(new THREE.BoxGeometry(0.3, 2.6, 15.6), [face, face, edge, edge, edge, edge], X, 8.0, Z));
+    }
+}
+function addMisters(g, d) {
+    const poleM = lam("#b9b6ae");
+    const mistM = basic("#ffffff", { transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide });
+    for (const [x, y] of d.pts) {
+        const [X, Z] = P3(x, y);
+        g.add(mesh(new THREE.CylinderGeometry(0.12, 0.16, 6.4, 8), poleM, X, 3.2, Z));
+        g.add(mesh(new THREE.BoxGeometry(2.6, 0.12, 0.12), poleM, X, 6.3, Z));
+        g.add(mesh(new THREE.BoxGeometry(0.12, 0.12, 2.6), poleM, X, 6.3, Z));
+        const mist = mesh(new THREE.ConeGeometry(2.4, 4.6, 14, 1, true), mistM.clone(), X, 4.0, Z, false);
+        mist.renderOrder = 3;
+        g.add(mist);
+        ARAFAH3.mist.push(mist);
+    }
+}
+// ---------------------------------------------------------------------
+//  Jambatan Jamarat: lantai 12 m & 24 m dengan lubang di atas setiap takungan
+//  (dinding jamrah menembusi semua tingkat), jemaah di tingkat atas, papan
+//  nama tergantung dan anak panah aliran sehala ke barat semasa melontar.
+// ---------------------------------------------------------------------
+const JAMARAT3 = { upper: null, arrows: [], box: null };
+const JAM_AR = { ula: "الجمرة الصغرى", wusta: "الجمرة الوسطى", aqabah: "جمرة العقبة" };
+function addJamarat(g, d) {
+    JAMARAT3.box = d;
+    const up = new THREE.Group();
+    const jams = Object.keys(JAM);
+    const [x0, z0] = P3(d.x0, d.y0);
+    const [x1, z1] = P3(d.x1, d.y1);
+    // cahaya lembut supaya bahagian bawah lantai (dalam bayang) tidak gelap
+    const slabM = lam("#e6e1d6", { emissive: new THREE.Color("#4a4740") });
+    const railM = lam("#b9b4a8");
+    const fascia = canvasTex(1024, 96, (c) => {
+        c.fillStyle = "#f1ede4";
+        c.fillRect(0, 0, 1024, 96);
+        c.fillStyle = "#16634c";
+        c.fillRect(0, 70, 1024, 14);
+        c.fillStyle = "#16634c";
+        c.font = "800 38px Nunito, 'Segoe UI', sans-serif";
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.fillText("JAMBATAN JAMARAT", 300, 36);
+        c.font = "700 40px Amiri, 'Noto Naskh Arabic', serif";
+        c.fillText("جسر الجمرات", 760, 36);
+    }, true);
+    fascia.repeat.set(Math.max(1, Math.round((x1 - x0) / 40)), 1);
+    for (const lvPx of d.levels) {
+        const L = lvPx * K3;
+        const sh = new THREE.Shape();
+        sh.moveTo(x0, z0);
+        sh.lineTo(x1, z0);
+        sh.lineTo(x1, z1);
+        sh.lineTo(x0, z1);
+        sh.closePath();
+        for (const j of jams) {
+            const J = JAM[j];
+            const hole = new THREE.Path();
+            hole.absellipse(J.x * K3, J.y * K3, (J.rx + 14) * K3, (J.ry + 12) * K3, 0, TAU, true, 0);
+            sh.holes.push(hole);
+            // pagar & tebing takungan di sekeliling lubang
+            const ring = new THREE.Shape();
+            ring.absellipse(J.x * K3, J.y * K3, (J.rx + 16) * K3, (J.ry + 14) * K3, 0, TAU, false, 0);
+            const inner = new THREE.Path();
+            inner.absellipse(J.x * K3, J.y * K3, (J.rx + 14) * K3, (J.ry + 12) * K3, 0, TAU, true, 0);
+            ring.holes.push(inner);
+            const rg = new THREE.ExtrudeGeometry(ring, { depth: 1.1, bevelEnabled: false, curveSegments: 36 });
+            rg.rotateX(Math.PI / 2);
+            rg.translate(0, L + 1.1, 0);
+            up.add(mesh(rg, railM, 0, 0, 0, false));
+        }
+        const sg = new THREE.ExtrudeGeometry(sh, { depth: 0.8, bevelEnabled: false, curveSegments: 36 });
+        sg.rotateX(Math.PI / 2);
+        sg.translate(0, L, 0);
+        up.add(mesh(sg, slabM));
+        // lampu siling di bawah lantai
+        const lamps = [];
+        for (let lx = d.x0 + 60; lx < d.x1 - 40; lx += 90) {
+            for (const lz of [d.y0 + 40, (d.y0 + d.y1) / 2, d.y1 - 30]) {
+                if (jams.some((j) => ((lx - JAM[j].x) / (JAM[j].rx + 24)) ** 2 + ((lz - JAM[j].y) / (JAM[j].ry + 22)) ** 2 < 1))
+                    continue;
+                const lg = new THREE.BoxGeometry(2.2, 0.12, 0.5);
+                lg.translate(lx * K3, L - 0.86, lz * K3);
+                lamps.push(lg);
+            }
+        }
+        up.add(mesh(mergeGeos(lamps), basic("#fff8e2"), 0, 0, 0, false));
+        // pagar tepi & papan muka di sisi selatan (menghadap khemah)
+        up.add(mesh(new THREE.BoxGeometry(x1 - x0, 1.1, 0.15), railM, (x0 + x1) / 2, L + 0.55, z1 - 0.1, false));
+        up.add(mesh(new THREE.BoxGeometry(x1 - x0, 1.1, 0.15), railM, (x0 + x1) / 2, L + 0.55, z0 + 0.1, false));
+        const fp = mesh(new THREE.PlaneGeometry(x1 - x0, 1.6), lam("#ffffff", { map: fascia }), (x0 + x1) / 2, L - 0.8, z1 + 0.02, false);
+        up.add(fp);
+        // jemaah di tingkat atas (statik, digabung)
+        const r = mulberry32(700 + lvPx);
+        const ppl = [];
+        for (let i = 0; i < 220; i++) {
+            const px = d.x0 + 20 + r() * (d.x1 - d.x0 - 40);
+            const py = d.y0 + 16 + r() * (d.y1 - d.y0 - 32);
+            if (jams.some((j) => ((px - JAM[j].x) / (JAM[j].rx + 30)) ** 2 + ((py - JAM[j].y) / (JAM[j].ry + 26)) ** 2 < 1))
+                continue;
+            const b = new THREE.CylinderGeometry(0.22, 0.28, 1.3, 6);
+            b.translate(px * K3, L + 0.65, py * K3);
+            const hd = new THREE.SphereGeometry(0.19, 6, 4);
+            hd.translate(px * K3, L + 1.5, py * K3);
+            ppl.push(b, hd);
+        }
+        up.add(mesh(mergeGeos(ppl), lam("#f3f0e8"), 0, 0, 0, false));
+    }
+    // dinding jamrah memanjang menembusi lantai hingga ±26 m & papan nama tergantung
+    const wt = wallTexture("#cfc6b2", "plain");
+    wt.repeat.set(3, 6);
+    const top = d.levels[d.levels.length - 1] * K3 + 2;
+    for (const j of jams) {
+        const J = JAM[j];
+        const [X, Z] = P3(J.x, J.y);
+        up.add(mesh(new THREE.BoxGeometry(11.6, top - 7.4, 1.2), lam("#ffffff", { map: wt }), X, 7.4 + (top - 7.4) / 2, Z));
+        const st = canvasTex(768, 192, (c) => {
+            c.fillStyle = "#16634c";
+            c.fillRect(0, 0, 768, 192);
+            c.strokeStyle = "#f3d488";
+            c.lineWidth = 8;
+            c.strokeRect(6, 6, 756, 180);
+            c.fillStyle = "#ffffff";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.font = "700 62px Amiri, 'Noto Naskh Arabic', serif";
+            c.fillText(JAM_AR[j], 384, 64);
+            c.font = "800 52px Nunito, 'Segoe UI', sans-serif";
+            c.fillText(J.name.toUpperCase(), 384, 140);
+        });
+        const sm = lam("#ffffff", { map: st });
+        const edge = lam("#0f4636");
+        const sz = (J.y + J.ry + 26) * K3;
+        up.add(mesh(new THREE.BoxGeometry(9, 2.25, 0.18), [edge, edge, edge, edge, sm, sm], X, 9.6, sz, false));
+        for (const dx of [-3.6, 3.6])
+            up.add(mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.4, 4), railM, X + dx, 11.3, sz, false));
+    }
+    // tiang penuh: baris selatan (sejajar tiang peta 2D di y -293) & baris utara
+    const cols = [];
+    for (let x = -680; x <= 680; x += 150) {
+        if (jams.some((j) => Math.abs(JAM[j].x - x) < 120))
+            continue;
+        for (const cz of [-293, d.y0 + 10]) {
+            const c = new THREE.CylinderGeometry(0.8, 0.88, top - 2, 10);
+            c.translate(x * K3, (top - 2) / 2, cz * K3);
+            cols.push(c);
+        }
+    }
+    up.add(mesh(mergeGeos(cols), lam("#c7c0b3")));
+    g.add(up);
+    JAMARAT3.upper = up;
+    // anak panah aliran sehala (timur → barat, tertib Ula → Wusta → Aqabah)
+    const ash = new THREE.Shape();
+    ash.moveTo(0, 1.0);
+    ash.lineTo(0.9, -0.1);
+    ash.lineTo(0.35, -0.1);
+    ash.lineTo(0.35, -0.9);
+    ash.lineTo(-0.35, -0.9);
+    ash.lineTo(-0.35, -0.1);
+    ash.lineTo(-0.9, -0.1);
+    ash.closePath();
+    const ag = new THREE.ShapeGeometry(ash);
+    ag.rotateX(-Math.PI / 2);
+    JAMARAT3.arrows = [];
+    for (let x = d.x1 - 60; x >= d.x0 + 60; x -= 60) {
+        const a = mesh(ag, basic("#3d8fe0", { transparent: true, opacity: 0.5, depthWrite: false }), x * K3, 0.06, d.flowY * K3, false);
+        a.rotation.y = Math.PI / 2; // menghala ke barat (-X)
+        a.visible = false;
+        a.renderOrder = 2;
+        g.add(a);
+        JAMARAT3.arrows.push(a);
+    }
+}
+function updateArafahMina3D(cam) {
+    ARAFAH3.mist.forEach((m, i) => {
+        m.material.opacity = 0.12 + 0.08 * Math.sin(T.time * 2.2 + i);
+        m.rotation.y += 0.01;
+    });
+    if (JAMARAT3.upper)
+        JAMARAT3.upper.visible = cam.position.y < (JAMARAT3.box ? JAMARAT3.box.levels[0] * K3 - 0.6 : 11);
+    const on = started && scene.id === "mina" && SET.arrow && (expectedJamrah() !== null || isStep("aqabah_go"));
+    JAMARAT3.arrows.forEach((a, i) => {
+        a.visible = on;
+        if (on)
+            a.material.opacity = 0.2 + 0.42 * (0.5 + 0.5 * Math.sin(T.time * 4 - i * 0.9));
+    });
 }
 function addSign(g, x, y, text) {
     const [X, Z] = P3(x, y);
@@ -5498,6 +5783,10 @@ function ensureWorld() {
     MASA3.roof = null;
     MASA3.arrows = [];
     TAWAF3.groups = [];
+    ARAFAH3.mist = [];
+    JAMARAT3.upper = null;
+    JAMARAT3.arrows = [];
+    JAMARAT3.box = null;
     MASA3.box = null;
     BUILD_TEX = [];
     const sc = scene;
@@ -5634,6 +5923,15 @@ function addM3(g, d, lamps, seed) {
             break;
         case "matafRing":
             addMatafRing(g, d);
+            break;
+        case "arafahGate":
+            addArafahGate(g, d);
+            break;
+        case "misters":
+            addMisters(g, d);
+            break;
+        case "jamarat":
+            addJamarat(g, d);
             break;
     }
 }
@@ -5942,6 +6240,11 @@ function update3D(dt) {
             _v.z = clamp(_v.z, (mb.y0 + 14) * K3, (mb.y1 - 14) * K3);
             _v.y = Math.min(_v.y, HALL_H - 1.2);
         }
+        const jb = JAMARAT3.box;
+        if (!top && jb && scene.id === "mina" && P.y > jb.y0 - 40 && P.y < jb.y1 + 60) {
+            // di bawah jambatan Jamarat: kamera kekal di bawah lantai pertama
+            _v.y = Math.min(_v.y, jb.levels[0] * K3 - 1.4);
+        }
         cam.position.lerp(_v, Math.min(1, dt * 9));
         // pandang sedikit ke hadapan pemain supaya kawasan di hadapan kelihatan di bawah kad tugasan
         const ahead = top ? 0 : Math.min(5, dist * 0.3);
@@ -5953,6 +6256,7 @@ function update3D(dt) {
     }
     updateMasa3D(cam);
     updateTawaf3D();
+    updateArafahMina3D(cam);
     // matahari mengikut pemain (supaya bayang sentiasa tajam di sekeliling)
     if (R3.sun) {
         R3.sun.position.set(tx + 34, 70, tz + 26);
@@ -6052,10 +6356,12 @@ function update3D(dt) {
         }
     }
     if (R3.qArrow) {
-        const on = needKaabahHint();
+        const hint = dirHint();
+        const on = !!hint;
         R3.qArrow.visible = on;
-        if (on) {
-            const a = Math.atan2(-P.x, -P.y);
+        R3.qArrow.userData.label = hint ? hint.label : "";
+        if (hint) {
+            const a = Math.atan2(hint.x - P.x, hint.y - P.y);
             const R = C3.mode === "eye" ? 3.4 : 2.8;
             R3.qArrow.position.set(tx + Math.sin(a) * R, 0.14, tz + Math.cos(a) * R);
             R3.qArrow.rotation.y = a + Math.PI;
@@ -6133,7 +6439,7 @@ function drawOverlay3D() {
         const q = R3.qArrow.position;
         const s = proj(q.x / K3, q.z / K3, 0.9);
         if (s)
-            drawPill(s.x, s.y - 14, "ARAH KAABAH", "#1f7a3f");
+            drawPill(s.x, s.y - 14, R3.qArrow.userData.label || "ARAH KAABAH", "#1f7a3f");
     }
     for (const f of floaters) {
         const s = proj(f.x, f.y + 40, 2.8 + f.t * 0.9);
@@ -6760,6 +7066,7 @@ const T = {
     saveT: 0,
     enWarn: 0,
     minumCd: 0,
+    kiblatT: 0,
     hudT: 0,
     miniT: 0,
     running: false,
@@ -7406,6 +7713,19 @@ function saieCounter() {
             : null,
     };
 }
+// Penunjuk arah: Kaabah (bukit saie), kiblat (wukuf & selepas Jamrah Ula/Wusta).
+// Kiblat dari Arafah dan Mina menghala ke barat (Makkah) dalam peta game.
+function dirHint() {
+    if (needKaabahHint())
+        return { x: 0, y: 0, label: "ARAH KAABAH" };
+    if (!started)
+        return null;
+    if (scene.id === "arafah" && isStep("wukuf") && insideArafah(P) && !T.wukuf.praying)
+        return { x: P.x - 1000, y: P.y, label: "ARAH KIBLAT" };
+    if (scene.id === "mina" && T.kiblatT > 0)
+        return { x: P.x - 1000, y: P.y, label: "ARAH KIBLAT" };
+    return null;
+}
 // Penunjuk arah Kaabah: di atas bukit sebelum berdoa (diilhamkan oleh prototaip saie 3D jemaah lain)
 function needKaabahHint() {
     if (!started || scene.id !== "makkah" || !inMasa(P))
@@ -7538,6 +7858,7 @@ function finishThrows(sid, j) {
     }
     else if (sid === "ula" || sid === "wusta") {
         toast(`${JAM[j].name} selesai. Sunat menghadap kiblat dan berdoa sebelum ke jamrah seterusnya.`, "ok", 5200);
+        T.kiblatT = 14; // tunjuk ARAH KIBLAT seketika
     }
     else
         toast("Ketiga-tiga jamrah selesai untuk hari ini.", "ok", 4200);
@@ -7569,6 +7890,11 @@ function toggleWukuf() {
     }
     T.wukuf.praying = true;
     T.wukuf.cardT = 0;
+    // sunat berwukuf menghadap kiblat: Makkah di sebelah barat Arafah
+    P.dx = -1;
+    P.dy = 0;
+    if (R3.active && C3.mode !== "top")
+        C3.yaw = Math.atan2(-P.dx, -P.dy);
     toast("Berwukuf… kekal diam, berdoa, berzikir dan beristighfar.", "info", 3600);
 }
 function stopWukuf(msg) {
@@ -8106,6 +8432,9 @@ function currentLight() {
     const st = curStep();
     if (scene.id === "muzdalifah")
         return "night";
+    // wukuf berlangsung hingga matahari terbenam: langit beransur keemasan
+    if (scene.id === "arafah" && isStep("wukuf") && S.wukuf >= 0.7)
+        return "dusk";
     if (st && st.scene === scene.id && st.light)
         return st.light;
     return "day";
@@ -8144,6 +8473,7 @@ function render() {
     if (started) {
         drawSaieFloor();
         drawTawafFloor();
+        drawJamaratFloor();
     }
     if (started && bestInteract && bestInteract.ring && bestInteract.enabled()) {
         const pulse = 0.5 + 0.5 * Math.sin(T.time * 5);
@@ -8219,8 +8549,9 @@ function render() {
         drawNameTag();
         if (target && SET.arrow)
             drawArrow(target);
-        if (needKaabahHint())
-            drawKaabahHint();
+        const hint = dirHint();
+        if (hint)
+            drawDirHint(hint);
     }
 }
 // anak panah biru di lantai Mas'a menunjuk arah perjalanan saie
@@ -8268,6 +8599,132 @@ function drawTawafFloor() {
             ctx.restore();
         }
     }
+}
+// anak panah aliran sehala di Jamarat (timur → barat: Ula → Wusta → Aqabah)
+function lontarActive() {
+    return scene.id === "mina" && (expectedJamrah() !== null || isStep("aqabah_go", "batu_tasyrik"));
+}
+function drawJamaratFloor() {
+    if (!lontarActive() || !SET.arrow)
+        return;
+    let i = 0;
+    for (let x = 660; x >= -660; x -= 60, i++) {
+        if (!inView(x, -350, 20))
+            continue;
+        const al = 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(T.time * 4 - i * 0.9));
+        ctx.save();
+        ctx.translate(x, -350);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = `rgba(61,143,224,${al})`;
+        poly(ctx, [0, -11, 10, 0, 4, 0, 4, 10, -4, 10, -4, 0, -10, 0]);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+// panel tertib lontar: Ula → Wusta → Aqabah dengan kiraan setiap jamrah hari ini
+function drawLontarPanel() {
+    const box = el("lontarPanel");
+    const on = started && lontarActive();
+    box.hidden = !on;
+    if (!on)
+        return;
+    const cv = el("lpCv");
+    const rect = cv.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(60, Math.round(rect.width));
+    const h = Math.max(40, Math.round(rect.height));
+    if (cv.width !== w * dpr || cv.height !== h * dpr) {
+        cv.width = w * dpr;
+        cv.height = h * dpr;
+    }
+    const c = cv.getContext("2d");
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const nahar = isStep("aqabah_go", "aqabah");
+    const sids = { ula: "ula", wusta: "wusta", aqabah: nahar ? "aqabah" : "aqabah2" };
+    const cur = expectedJamrah() ?? (isStep("aqabah_go") ? "aqabah" : isStep("batu_tasyrik") ? "ula" : null);
+    const order = ["ula", "wusta", "aqabah"];
+    const names = ["Ula", "Wusta", "Aqabah"];
+    const cy = 22;
+    order.forEach((j, k) => {
+        const cx = (w / 3) * (k + 0.5);
+        if (k < 2) {
+            c.strokeStyle = "rgba(255,255,255,.35)";
+            c.lineWidth = 2;
+            line(c, cx + 15, cy, cx + w / 3 - 15, cy);
+        }
+        const na = nahar && j !== "aqabah";
+        const n = S.throws[sids[j]] ?? 0;
+        const done = !na && n >= 7;
+        const now = cur === j;
+        c.fillStyle = na ? "rgba(255,255,255,.08)" : done ? "#2fbf6a" : now ? "#f2c230" : "rgba(255,255,255,.18)";
+        circ(c, cx, cy, now ? 14 : 12);
+        c.fill();
+        c.fillStyle = now ? "#3a2a04" : "#fff";
+        c.font = `800 ${now ? 11 : 10}px ${FONT_B}`;
+        c.textAlign = "center";
+        c.textBaseline = "middle";
+        c.fillText(na ? "—" : done ? "✓" : `${n}/7`, cx, cy + 0.5);
+        c.fillStyle = na ? "rgba(255,255,255,.4)" : "#fff";
+        c.font = `800 9.5px ${FONT_B}`;
+        c.fillText(names[k], cx, cy + 25);
+    });
+    el("lpN").textContent = nahar ? `10 Zulhijjah · Aqabah sahaja · batu ${S.pebbles}` : `Hari Tasyrik · batu ${S.pebbles}`;
+}
+// dial matahari wukuf: dari gelincir (Zohor) hingga terbenam (Maghrib)
+function drawWukufDial() {
+    const box = el("wukufDial");
+    const on = started && scene.id === "arafah" && isStep("wukuf");
+    box.hidden = !on;
+    if (!on)
+        return;
+    const cv = el("wdCv");
+    const rect = cv.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.max(60, Math.round(rect.width));
+    const h = Math.max(36, Math.round(rect.height));
+    if (cv.width !== w * dpr || cv.height !== h * dpr) {
+        cv.width = w * dpr;
+        cv.height = h * dpr;
+    }
+    const c = cv.getContext("2d");
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const cx = w / 2;
+    const base = h - 8;
+    const R = Math.min(w / 2 - 10, h - 14);
+    c.strokeStyle = "rgba(255,255,255,.3)";
+    c.lineWidth = 2;
+    c.setLineDash([3, 4]);
+    c.beginPath();
+    c.arc(cx, base, R, Math.PI, 0);
+    c.stroke();
+    c.setLineDash([]);
+    c.strokeStyle = "rgba(255,255,255,.5)";
+    line(c, 4, base, w - 4, base);
+    // lengkok yang telah dilalui
+    const t = clamp(S.wukuf, 0, 1);
+    c.strokeStyle = "#f2c230";
+    c.lineWidth = 3;
+    c.beginPath();
+    c.arc(cx, base, R, Math.PI, Math.PI + Math.PI * t);
+    c.stroke();
+    const a = Math.PI + Math.PI * t;
+    const sx = cx + Math.cos(a) * R;
+    const sy = base + Math.sin(a) * R;
+    c.fillStyle = t >= 0.7 ? "#ff9b58" : "#ffd166";
+    circ(c, sx, sy, 7);
+    c.fill();
+    c.fillStyle = "rgba(255,255,255,.75)";
+    c.font = `800 8.5px ${FONT_B}`;
+    c.textAlign = "left";
+    c.fillText("Zohor", 2, base - 3);
+    c.textAlign = "right";
+    c.fillText("Maghrib", w - 2, base - 3);
+    const inside = insideArafah(P);
+    const st = el("wdS");
+    st.textContent = inside ? "Dalam sempadan ✓" : "Luar sempadan ✗";
+    st.className = "wd-s" + (inside ? "" : " bad");
 }
 // dial kemajuan tawaf: Kaabah di tengah, garisan mula, kedudukan & pusingan semasa
 function drawTawafDial() {
@@ -8327,9 +8784,9 @@ function drawTawafDial() {
     c.stroke();
     el("tdN").textContent = `${S.tawafLaps}/7`;
 }
-// anak panah hijau "KAABAH" di sekeliling watak
-function drawKaabahHint() {
-    const a = Math.atan2(-P.y, -P.x);
+// anak panah hijau (Kaabah / kiblat) di sekeliling watak
+function drawDirHint(h) {
+    const a = Math.atan2(h.y - P.y, h.x - P.x);
     const s = toScreen(P.x, P.y - 20);
     const R = 62;
     const pulse = 1 + Math.sin(T.time * 5) * 0.08;
@@ -8344,7 +8801,7 @@ function drawKaabahHint() {
     ctx.fill();
     ctx.stroke();
     ctx.restore();
-    drawPill(s.x + Math.cos(a) * (R + 30), s.y + Math.sin(a) * (R + 30), "ARAH KAABAH", "#1f7a3f");
+    drawPill(s.x + Math.cos(a) * (R + 30), s.y + Math.sin(a) * (R + 30), h.label, "#1f7a3f");
 }
 function drawPill(x, y, text, bg) {
     ctx.font = `800 11px ${FONT_B}`;
@@ -8674,6 +9131,7 @@ function update(dt) {
     updateMiqatActivity(dt);
     T.throwCd -= dt;
     T.zamCd -= dt;
+    T.kiblatT -= dt;
     if (T.busy > 0) {
         T.busy -= dt;
         if (T.busy <= 0) {
@@ -8717,6 +9175,8 @@ function update(dt) {
             drawMini();
         drawSaieStrip();
         drawTawafDial();
+        drawLontarPanel();
+        drawWukufDial();
     }
     T.saveT -= dt;
     if (T.saveT <= 0) {
@@ -8855,6 +9315,7 @@ window.__jh = {
         cam.y = y;
     },
     finish: () => advance(),
+    closeModal: () => closeModal(),
     models: MODELS3D,
     C3,
     R3,

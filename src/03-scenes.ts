@@ -1029,9 +1029,11 @@ function buildMina(): Scene {
   for (let x = -680; x <= 680; x += 150) {
     if ((Object.keys(JAM) as JamId[]).some((j) => Math.abs(JAM[j].x - x) < 120)) continue;
     sc.solids.push({ t: "r", x: x - 9, y: -300, w: 18, h: 14 });
+    // tiang penuh 24 m dibina bersama lantai jambatan (m3 "jamarat") supaya tersembunyi dalam kamera Atas
     m3({ k: "pillar", x, y: -293, h: 50, r: 8, col: "#c7c0b3" });
     sc.props.push({ y: -286, draw: (c) => box(c, x - 9, -300, 18, 14, 50, "#c7c0b3") });
   }
+  m3({ k: "jamarat", x0: -720, x1: 720, y0: -560, y1: -300, levels: [120, 240], flowY: -350 });
   tentGrid(sc, -300, -170, 8, 7, 112, 100, 84, 64, [4, 3]);
   // kaunter dam & khemah gunting
   sc.solids.push({ t: "r", x: -690, y: 10, w: 130, h: 60 });
@@ -1223,7 +1225,47 @@ function buildArafah(): Scene {
   sc.ambient = 0.45;
   // Masjid Namirah (sebahagian hadapan di luar Arafah)
   sc.solids.push({ t: "r", x: -520, y: -480, w: 270, h: 150 });
-  m3({ k: "bld", x: -520, y: -480, w: 270, d: 150, h: 58, col: "#eee8db", style: "arch", sign: "MASJID NAMIRAH", domes: [{ x: -385, y: -405, r: 34 }] });
+  m3({
+    k: "bld",
+    x: -520,
+    y: -480,
+    w: 270,
+    d: 150,
+    h: 58,
+    col: "#eee8db",
+    style: "arch",
+    sign: "MASJID NAMIRAH",
+    domes: [
+      { x: -385, y: -405, r: 34 },
+      { x: -455, y: -405, r: 20 },
+      { x: -315, y: -405, r: 20 },
+    ],
+  });
+  // Masjid Namirah mempunyai enam menara: dua di peta 2D (minaretProp), empat lagi untuk 3D
+  for (const [mx, my] of [
+    [-520, -405],
+    [-250, -405],
+    [-430, -480],
+    [-340, -480],
+  ])
+    m3({ k: "minaret", x: mx, y: my, h: 150, col: "#efe8da" });
+  m3({ k: "arafahGate", x: ARAFAH_X, ys: [-150, 300] });
+  m3({
+    k: "misters",
+    pts: [
+      [-200, 0],
+      [-60, 0],
+      [80, 0],
+      [220, 0],
+      [360, 0],
+      [500, 0],
+      [-200, 500],
+      [60, 500],
+      [320, 500],
+      [600, 260],
+      [600, -60],
+    ],
+  });
   sc.props.push({
     y: -330,
     draw: (c) => {

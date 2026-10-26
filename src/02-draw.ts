@@ -39,6 +39,11 @@ type M3 =
   | { k: "pole"; x: number; y: number }
   | { k: "mountains"; x0: number; y0: number; x1: number; y1: number; col: string; seed: number }
   | { k: "stars" }
+  // Arafah: gerbang papan sempadan & tiang semburan air
+  | { k: "arafahGate"; x: number; ys: number[] }
+  | { k: "misters"; pts: [number, number][] }
+  // Jamarat: lantai bertingkat berlubang di atas takungan, tiang, papan nama & anak panah aliran
+  | { k: "jamarat"; x0: number; x1: number; y0: number; y1: number; levels: number[]; flowY: number }
   // mataf bertingkat (fasad dalam bulatan) & anak panah tawaf
   | { k: "matafRing"; r: number; h: number; arrows: number[] }
   // dewan Mas'a: west/east = bukaan pintu [y1, y2] pada dinding barat/timur
