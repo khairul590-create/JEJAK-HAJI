@@ -286,7 +286,7 @@ for j in range(18):
         a=-math.pi*.91+math.pi*.86*u
         rx=.248-.040*t
         ry=.167-.025*t
-        z=.31+.10*u+.025*math.sin(math.pi*u)+(1.005-(.31+.10*u+.025*math.sin(math.pi*u)))*t
+        z=.27+.27*u+.025*math.sin(math.pi*u)+(1.005-(.27+.27*u+.025*math.sin(math.pi*u)))*t
         ripple=.0035*math.sin(15*u+5*t)
         verts.append(((rx+ripple)*math.cos(a),(ry+ripple)*math.sin(a),z))
 for j in range(17):
@@ -302,7 +302,7 @@ for j in range(R):
     for i in range(N):
         a=math.tau*i/N
         cx=math.cos(a)
-        bottom=.945+.090*cx+.018*math.sin(3*a)
+        bottom=.915+.035*cx+.010*math.sin(3*a)
         top=1.325+.115*cx
         z=bottom+(top-bottom)*t
         rx=.205+.055*t**3
@@ -398,6 +398,16 @@ for ob in list(rig.children):
     buckets.setdefault((tag,ob.data.materials[0].name),[]).append(ob)
 for (tag,material),obs in buckets.items():join(obs,tag+'_'+material.replace(' ','_'))
 
+# Bound the whole avatar, including cloth and face, rather than counting the body alone.
+total_triangles=0
+for ob in rig.children:
+    ob.data.calc_loop_triangles();total_triangles+=len(ob.data.loop_triangles)
+ratio=min(1,13700/total_triangles)
+for ob in rig.children:
+    if len(ob.data.polygons)<100:continue
+    modifier=ob.modifiers.new('Final mobile budget','DECIMATE');modifier.ratio=ratio
+    apply(ob,modifier)
+
 
 def pose(name,t=0):
     for bone in rig.pose.bones:
@@ -430,6 +440,18 @@ def pose(name,t=0):
             rig.pose.bones['UpperArm'+n].rotation_euler.z=math.radians(sign*18)
     else:rx('Spine',.35*math.sin(t*math.tau))
     bpy.context.view_layer.update()
+    if name in ['Duduk','Sujud']:
+        # Align evaluated skin to the floor; a guessed hip height caused penetration.
+        depsgraph=bpy.context.evaluated_depsgraph_get()
+        lowest=math.inf
+        for ob in rig.children:
+            if ob.name.startswith('Footwear'):continue
+            evaluated=ob.evaluated_get(depsgraph)
+            geometry=evaluated.to_mesh()
+            lowest=min(lowest,min((evaluated.matrix_world@v.co).z for v in geometry.vertices))
+            evaluated.to_mesh_clear()
+        rig.pose.bones['Hips'].location.y+=.003-lowest
+        bpy.context.view_layer.update()
 
 
 rig.animation_data_create()
