@@ -28,6 +28,7 @@ const C3 = {
 
 interface PeopleInst {
   cap: number;
+  blob: THREE.InstancedMesh;
   meshes: Record<"body" | "head" | "hair" | "veil" | "cape" | "face" | "hands", THREE.InstancedMesh>;
 }
 interface PlayerRig {
@@ -133,6 +134,7 @@ function initRenderer(): boolean {
   try {
     const cv = el<HTMLCanvasElement>("world3d");
     const r = new THREE.WebGLRenderer({ canvas: cv, antialias: !LOWQ, powerPreference: "high-performance" });
+    gfxSetup(r); // warna sRGB & tone mapping — mesti sebelum lampu/bahan dicipta
     r.shadowMap.enabled = true;
     r.shadowMap.type = THREE.PCFSoftShadowMap;
     R3.renderer = r;
@@ -143,7 +145,7 @@ function initRenderer(): boolean {
     sc.add(R3.hemi);
     const sun = new THREE.DirectionalLight(0xfff1d8, 0.85);
     sun.castShadow = true;
-    const sz = LOWQ ? 1024 : 2048;
+    const sz = gfxLevel() >= 2 ? 2048 : 1024;
     sun.shadow.mapSize.set(sz, sz);
     const sh = sun.shadow.camera;
     sh.left = -42;
@@ -173,10 +175,11 @@ function initRenderer(): boolean {
 
 function resize3D(): void {
   if (!R3.renderer || !R3.camera) return;
-  R3.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOWQ ? 1.3 : 1.75));
+  R3.renderer.setPixelRatio(gfxPixelRatio());
   R3.renderer.setSize(W, H, false);
   R3.camera.aspect = W / H;
   R3.camera.updateProjectionMatrix();
+  gfxResize();
 }
 
 // ---------------------------------------------------------------------
@@ -188,6 +191,11 @@ function lam(col: string | number, extra?: THREE.MeshLambertMaterialParameters):
   const key = "l" + col + (extra ? JSON.stringify(Object.keys(extra)) + (extra.emissive ?? "") + (extra.opacity ?? "") : "");
   const hit = matCache.get(key);
   if (hit && !extra?.map) return hit as THREE.MeshLambertMaterial;
+  const gold = gfxGold(String(col).toLowerCase(), extra);
+  if (gold) {
+    matCache.set(key, gold);
+    return gold;
+  }
   const m = new THREE.MeshLambertMaterial({ color: new THREE.Color(col as string), ...extra });
   if (!extra?.map) matCache.set(key, m);
   return m;
@@ -201,7 +209,8 @@ function flat(col: string): THREE.MeshPhongMaterial {
   return m;
 }
 function basic(col: string | number, extra?: THREE.MeshBasicMaterialParameters): THREE.MeshBasicMaterial {
-  return new THREE.MeshBasicMaterial({ color: new THREE.Color(col as string), ...extra });
+  // papan tanda, anak panah & lampu: warna tepat tanpa tone mapping
+  return new THREE.MeshBasicMaterial({ color: new THREE.Color(col as string), toneMapped: false, ...extra });
 }
 function mesh(g: THREE.BufferGeometry, m: THREE.Material | THREE.Material[], x = 0, y = 0, z = 0, shadow = true): THREE.Mesh {
   const o = new THREE.Mesh(g, m);
@@ -236,6 +245,7 @@ function canvasTex(w: number, h: number, draw: (c: CanvasRenderingContext2D) => 
   const c = cv.getContext("2d") as CanvasRenderingContext2D;
   draw(c);
   const t = new THREE.CanvasTexture(cv);
+  t.encoding = THREE.sRGBEncoding;
   if (repeat) {
     t.wrapS = THREE.RepeatWrapping;
     t.wrapT = THREE.RepeatWrapping;
@@ -1544,7 +1554,8 @@ function addMountains(g: THREE.Group, x0: number, y0: number, x1: number, y1: nu
     ge.translate(cx + Math.cos(a) * ax * k, hgt / 2 - 1, cz + Math.sin(a) * az * k);
     gs.push(ge);
   }
-  g.add(mesh(mergeGeos(gs), flat(col), 0, 0, 0, false));
+  const mg = mergeGeos(gs);
+  g.add(mesh(mg, gfxMountainMat(mg, col, seed), 0, 0, 0, false));
 }
 
 function addStarfield(g: THREE.Group): void {
@@ -1602,6 +1613,7 @@ function makePeople(cap: number, g: THREE.Group): PeopleInst {
   };
   return {
     cap,
+    blob: makeBlobs(cap, g),
     meshes: {
       body: mk(PG.body as THREE.BufferGeometry),
       head: mk(PG.head as THREE.BufferGeometry),
@@ -1664,9 +1676,12 @@ function updatePeople(pi: PeopleInst, npcs: NPC[], colors: boolean): void {
   for (let i = 0; i < pi.cap; i++) {
     if (i >= n) {
       for (const k of Object.keys(M) as (keyof typeof M)[]) M[k].setMatrixAt(i, _Z);
+      pi.blob.setMatrixAt(i, _Z);
       continue;
     }
     const p = npcs[i].p;
+    _m4.makeTranslation(p.x * K3, 0.025, p.y * K3);
+    pi.blob.setMatrixAt(i, _m4);
     personMatrix(p, _m4);
     const fem = p.gender === "P";
     M.body.setMatrixAt(i, _m4);
@@ -1688,6 +1703,7 @@ function updatePeople(pi: PeopleInst, npcs: NPC[], colors: boolean): void {
       M.hands.setColorAt(i, tcol(p.skin));
     }
   }
+  pi.blob.instanceMatrix.needsUpdate = true;
   for (const k of Object.keys(M) as (keyof typeof M)[]) {
     M[k].instanceMatrix.needsUpdate = true;
     if (colors && M[k].instanceColor) (M[k].instanceColor as THREE.InstancedBufferAttribute).needsUpdate = true;
@@ -1864,7 +1880,7 @@ function ensureWorld(): void {
   if (sc.id === "makkah") {
     const R = 452;
     const mt = groundTexture(sc, -R, -R, R, R, tsz, R);
-    const disc = mesh(new THREE.CircleGeometry(R * K3, 120), lam("#ffffff", { map: mt }), 0, 0.02, 0, false);
+    const disc = mesh(new THREE.CircleGeometry(R * K3, 120), gfxMarble(mt), 0, 0.02, 0, false);
     disc.rotation.x = -Math.PI / 2;
     g.add(disc);
   }
@@ -2056,14 +2072,7 @@ function loadModels(id: SceneId, g: THREE.Group, subs: Map<string, THREE.Group>)
         if (!ms.isMesh) return;
         ms.castShadow = true;
         ms.receiveShadow = true;
-        // renderer menggunakan output linear; kekalkan warna asal tekstur Blender
-        const mats = Array.isArray(ms.material) ? ms.material : [ms.material];
-        for (const mt of mats) {
-          const mm = mt as THREE.MeshStandardMaterial;
-          if (mm.map) mm.map.encoding = THREE.LinearEncoding;
-          if (mm.emissiveMap) mm.emissiveMap.encoding = THREE.LinearEncoding;
-          mm.needsUpdate = true;
-        }
+        // tekstur Blender sRGB dipaparkan terus oleh renderer sRGB (lihat 11-grafik.ts)
       });
       g.add(obj);
       if (m.replace) {
@@ -2078,33 +2087,8 @@ function applyLight3D(l: Light): void {
   if (!R3.scene || !R3.hemi || !R3.sun) return;
   if (R3.light === l) return;
   R3.light = l;
-  const sc = R3.scene;
-  if (l === "night") {
-    sc.background = new THREE.Color("#0a1430");
-    sc.fog = new THREE.Fog(0x0a1430, 40, 260);
-    R3.hemi.color.set("#7b8fc4");
-    R3.hemi.groundColor.set("#3a3328");
-    R3.hemi.intensity = 0.42;
-    R3.sun.color.set("#a9bde8");
-    R3.sun.intensity = 0.22;
-  } else if (l === "dusk") {
-    sc.background = new THREE.Color("#f1a46a");
-    sc.fog = new THREE.Fog(0xe9a273, 90, 420);
-    R3.hemi.color.set("#ffd2a8");
-    R3.hemi.groundColor.set("#8a6a4a");
-    R3.hemi.intensity = 0.46;
-    R3.sun.color.set("#ff9b58");
-    R3.sun.intensity = 0.6;
-  } else {
-    sc.background = new THREE.Color("#a9cfea");
-    sc.fog = new THREE.Fog(0xc6dcea, 140, 560);
-    R3.hemi.color.set("#dcebff");
-    R3.hemi.groundColor.set("#a89272");
-    R3.hemi.intensity = 0.44;
-    R3.sun.color.set("#fff0d6");
-    R3.sun.intensity = 0.64;
-  }
   for (const p of R3.pts) p.intensity = 0;
+  gfxApplySky(true); // langit, kabus & lampu mengikut waktu (11-grafik.ts)
 }
 
 // ---------------------------------------------------------------------
@@ -2305,10 +2289,13 @@ function update3D(dt: number): void {
   updateArafahMina3D(cam);
   // matahari mengikut pemain (supaya bayang sentiasa tajam di sekeliling)
   if (R3.sun) {
-    R3.sun.position.set(tx + 34, 70, tz + 26);
+    const o = gfxSunOffset();
+    R3.sun.position.set(tx + o.x, o.y, tz + o.z);
     R3.sun.target.position.set(tx, 0, tz);
-    R3.sun.castShadow = SET.hq;
+    R3.sun.castShadow = gfxLevel() >= 1;
   }
+  if (GFX.sky) GFX.sky.position.copy(cam.position);
+  gfxFrame();
   // lampu malam: 3 lampu terdekat
   R3.lampT -= dt;
   if (R3.light === "night" && R3.lampT <= 0) {
@@ -2415,7 +2402,7 @@ function update3D(dt: number): void {
 
 function render3D(): void {
   if (!R3.renderer || !R3.scene || !R3.camera) return;
-  R3.renderer.render(R3.scene, R3.camera);
+  if (!gfxRender()) R3.renderer.render(R3.scene, R3.camera);
 }
 
 // ---------------------------------------------------------------------

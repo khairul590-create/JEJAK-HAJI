@@ -54,6 +54,8 @@ interface Settings {
   tenaga: boolean;
   gyro: boolean;
   avatar: "kartun" | "asal";
+  grafik: Grafik;
+  grafikAuto: boolean;
 }
 let SET: Settings = {
   zoom: 1,
@@ -67,6 +69,9 @@ let SET: Settings = {
   tenaga: true,
   gyro: false,
   avatar: "kartun",
+  // telefon bermula pada Rendah supaya lancar; komputer pada Tinggi
+  grafik: window.matchMedia("(pointer: coarse)").matches ? "rendah" : "tinggi",
+  grafikAuto: true,
 };
 function loadSettings(): void {
   const s = loadJSON<Partial<Settings>>(CONFIG.settingsKey);
@@ -880,7 +885,9 @@ function openSettings(): void {
 <label class="tg"><input type="checkbox" id="setDoa" ${SET.doa ? "checked" : ""}> Papar kad doa secara automatik</label>
 <label class="tg"><input type="checkbox" id="setMini" ${SET.mini ? "checked" : ""}> Papar peta mini</label>
 <label class="tg"><input type="checkbox" id="setArrow" ${SET.arrow ? "checked" : ""}> Papar anak panah sasaran</label>
-<label class="tg"><input type="checkbox" id="setHq" ${SET.hq ? "checked" : ""}> Bayang-bayang 3D (matikan jika telefon perlahan)</label>
+<label for="setGrafik">Kualiti grafik 3D</label>
+<select id="setGrafik">${GRAFIK_ORDER.map((g) => `<option value="${g}" ${SET.grafik === g ? "selected" : ""}>${{ rendah: "Rendah · paling laju (telefon)", sederhana: "Sederhana · bayang-bayang & kilauan marmar/emas", tinggi: "Tinggi · + cahaya bersinar (komputer)" }[g]}</option>`).join("")}</select>
+<label class="tg"><input type="checkbox" id="setGrafikAuto" ${SET.grafikAuto ? "checked" : ""}> Turunkan kualiti secara automatik jika game perlahan</label>
 <label class="tg"><input type="checkbox" id="setSnd" ${SET.sound ? "checked" : ""}> Bunyi</label>
 <label class="tg"><input type="checkbox" id="setSuara" ${SET.suara ? "checked" : ""}> Pemandu suara (baca arahan & doa)</label>
 <label class="tg"><input type="checkbox" id="setTenaga" ${SET.tenaga ? "checked" : ""}> Tenaga & air (letih apabila berjalan dalam panas)</label>
@@ -911,8 +918,12 @@ ${GYRO.ok ? `<label class="tg"><input type="checkbox" id="setGyro" ${SET.gyro ? 
     SET.arrow = (e.target as HTMLInputElement).checked;
     saveSettings();
   };
-  el<HTMLInputElement>("setHq").onchange = (e) => {
-    SET.hq = (e.target as HTMLInputElement).checked;
+  el<HTMLSelectElement>("setGrafik").onchange = (e) => {
+    const v = (e.target as HTMLSelectElement).value as Grafik;
+    setGrafik(GRAFIK_ORDER.includes(v) ? v : "rendah");
+  };
+  el<HTMLInputElement>("setGrafikAuto").onchange = (e) => {
+    SET.grafikAuto = (e.target as HTMLInputElement).checked;
     saveSettings();
   };
   el<HTMLInputElement>("setSnd").onchange = (e) => {

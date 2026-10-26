@@ -22,6 +22,7 @@
     "src/07-three.ts",
     "src/08-miqat.ts",
     "src/09-character.ts",
-    "src/10-lawatan.ts"
+    "src/10-lawatan.ts",
+    "src/11-grafik.ts"
   ]
 }
