@@ -51,6 +51,9 @@ jobs:
           # foto 360° untuk Lawatan 360° (docs/PANORAMA-360.md)
           rm -rf site/panorama
           if [ -d panorama ]; then cp -r panorama site/panorama; fi
+          # tekstur CC0 tempatan (textures/polyhaven/README.md)
+          rm -rf site/textures
+          if [ -d textures ]; then cp -r textures site/textures; fi
           # klip suara pemandu (tools/gen-voice.py)
           rm -rf site/audio
           cp -r audio site/audio
