@@ -33,6 +33,7 @@ const ICON: Record<string, string> = {
   cam: '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13" r="3.4"/></svg>',
   eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
   link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  pano: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M12 3v18"/></svg>',
   bolt: '<svg viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z" fill="currentColor" stroke="none"/></svg>',
   speak: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>',
 };
@@ -1057,6 +1058,7 @@ function openMap(tab: "haji" | "lokasi"): void {
         : `<canvas id="bigMap" class="bigmap"></canvas><p class="muted">Bulatan biru ialah kedudukan kamu; gelang emas ialah sasaran seterusnya. Peta ini dipermudahkan dan tidak mengikut skala sebenar.</p>`
     }</div>`,
     buttons: [
+      { label: "Lawatan 360°", kind: "gold", onClick: () => void startTour() },
       { label: "Rujukan", kind: "ghost", onClick: openRefs },
       { label: "Tutup", kind: "primary" },
     ],

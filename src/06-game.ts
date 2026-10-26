@@ -1122,7 +1122,7 @@ function updatePlayer(dt: number): void {
   const raw = getInput();
   const inp = R3.active ? input3D(raw, dt) : raw;
   const mag = Math.min(1, Math.hypot(inp.x, inp.y));
-  const blocked = T.busy > 0 || overlayBusy || modalOpen;
+  const blocked = T.busy > 0 || overlayBusy || modalOpen || TOUR.on;
   if (T.wukuf.praying && mag > 0.3 && !blocked) stopWukuf("Wukuf dihentikan. Tekan BERDOA semula dan kekal diam.");
   const tired = SET.tenaga && S.tenaga < 15;
   const wantRun = (runToggle || shiftHeld) && !tired;
@@ -2128,11 +2128,12 @@ function update(dt: number): void {
   updateTawaf(dt);
   updateSaie(dt);
   updateWukuf(dt);
-  updatePebbles();
+  // semasa Lawatan 360° kemajuan dibekukan: tiada kutip batu, langkah atau interaksi
+  if (!TOUR.on) updatePebbles();
   const st = curStep();
-  if (st && st.done && !modalOpen && !overlayBusy && st.done()) advance();
+  if (st && st.done && !modalOpen && !overlayBusy && !TOUR.on && st.done()) advance();
 
-  bestInteract = modalOpen || overlayBusy ? null : findInteract();
+  bestInteract = modalOpen || overlayBusy || TOUR.on ? null : findInteract();
   if (bestInteract) {
     const en = bestInteract.enabled();
     setAct(en ? "on" : "lock", bestInteract.label(), bestInteract.icon);
@@ -2143,6 +2144,7 @@ function update(dt: number): void {
   cam.x = lerp(cam.x, P.x, Math.min(1, dt * 6));
   // geser kamera sedikit ke utara kerana HUD atas lebih tebal daripada kawalan bawah
   cam.y = lerp(cam.y, P.y - (H * 0.08) / cam.zoom, Math.min(1, dt * 6));
+  updateTour(dt);
   update3D(dt);
 
   T.hudT -= dt;
@@ -2250,6 +2252,7 @@ function boot(hot: Partial<Save> | null): void {
   applyMiniSetting();
   applyTenagaSetting();
   initInput();
+  initTour();
   if (SET.gyro) void setGyro(true, true);
   resize();
   window.addEventListener("resize", resize);
@@ -2293,6 +2296,7 @@ else boot((HOT?.data as Partial<Save>) ?? null);
   },
   finish: () => advance(),
   closeModal: () => closeModal(),
+  tour: { start: () => startTour(), go: (i: number) => tourGo(i), end: () => endTour(), list: LAWATAN, get state() { return TOUR; } },
   models: MODELS3D,
   C3,
   R3,

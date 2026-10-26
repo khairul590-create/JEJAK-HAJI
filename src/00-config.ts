@@ -305,6 +305,180 @@ interface Model3D {
   scale?: number; // skala seragam (lalai 1)
   replace?: M3["k"]; // sembunyikan model asas jenis ini, contohnya "kaabah"
 }
+// ---------------------------------------------------------------------
+//  LAWATAN 360° — titik pandang dalam dunia 3D game (lihat docs/PANORAMA-360.md)
+//  x, y & look dalam piksel peta 2D. q = carian Google Maps untuk foto 360° sebenar.
+//  img = foto 360° equirectangular (2:1) anda sendiri / berlesen, contohnya
+//  "panorama/safa.jpg"; jika diisi, foto itu dipaparkan menggantikan dunia 3D.
+// ---------------------------------------------------------------------
+interface Pano360 {
+  scene: SceneId;
+  title: string;
+  text: string;
+  x: number;
+  y: number;
+  look: Vec;
+  pitch?: number;
+  q: string;
+  ext?: { label: string; url: string };
+  img?: string;
+  credit?: string;
+  heading?: number; // arah kompas tengah foto 360° (0 = utara, 90 = timur); lalai = arah `look`
+}
+const LAWATAN: Pano360[] = [
+  {
+    scene: "miqat",
+    title: "Masjid Miqat Bir Ali",
+    text: "Miqat Zulhulaifah bagi jemaah dari Madinah, kira-kira 14 km dari Masjid Nabawi. Di sinilah jemaah memakai ihram, solat sunat dua rakaat dan berniat. Menaranya setinggi kira-kira 62 m.",
+    x: 0,
+    y: -150,
+    look: { x: 0, y: -330 },
+    pitch: 0.18,
+    q: "Dhul Hulaifah Mosque Bir Ali",
+  },
+  {
+    scene: "makkah",
+    title: "Pintu King Abdul Aziz",
+    text: "Pintu utama di sebelah selatan Masjidil Haram. Masuk dengan kaki kanan sambil membaca doa masuk masjid. Menara Jam (Abraj al-Bait) berdiri di seberang dataran di belakang pintu ini.",
+    x: 0,
+    y: 650,
+    look: { x: 0, y: 0 },
+    pitch: 0.12,
+    q: "King Abdulaziz Gate Masjid al-Haram",
+  },
+  {
+    scene: "makkah",
+    title: "Garisan Hajarul Aswad",
+    text: "Setiap pusingan tawaf bermula dan berakhir di garisan ini, segaris dengan Hajarul Aswad di penjuru timur Kaabah. Lampu hijau di dinding menandakannya. Ketika bertawaf, Kaabah sentiasa di sebelah kiri.",
+    x: 215,
+    y: -25,
+    look: { x: 0, y: 0 },
+    pitch: 0.12,
+    q: "Kaaba Masjid al-Haram",
+    ext: { label: "Panorama 360° (360Cities)", url: "https://www.360cities.net/image/al-masjid-al-haram-al-haram-mosque-1" },
+  },
+  {
+    scene: "makkah",
+    title: "Maqam Ibrahim",
+    text: "Batu tempat Nabi Ibrahim AS berdiri ketika membina Kaabah, kini dalam bekas kaca berbingkai emas. Selepas tawaf, sunat solat dua rakaat di belakangnya jika tidak sesak.",
+    x: 112,
+    y: -112,
+    look: { x: 50, y: -50 },
+    pitch: 0.05,
+    q: "Maqam Ibrahim",
+  },
+  {
+    scene: "makkah",
+    title: "Hijir Ismail",
+    text: "Kawasan separuh bulatan berdinding rendah di sisi barat laut Kaabah. Ia sebahagian daripada Kaabah, jadi tawaf mesti di luarnya. Mizab (pancur emas) di bumbung mengalirkan air hujan ke kawasan ini.",
+    x: -82,
+    y: -82,
+    look: { x: 0, y: 0 },
+    pitch: 0.15,
+    q: "Hijr Ismail Kaaba",
+  },
+  {
+    scene: "makkah",
+    title: "Mataf & serambi Uthmaniyah",
+    text: "Mataf ialah lantai marmar putih di sekeliling Kaabah tempat bertawaf. Ia dikelilingi serambi Uthmaniyah yang bergerbang dan berkubah kecil, serta mataf bertingkat untuk menampung lebih ramai jemaah.",
+    x: 0,
+    y: 300,
+    look: { x: 0, y: 0 },
+    pitch: 0.2,
+    q: "Mataf Masjid al-Haram",
+  },
+  {
+    scene: "makkah",
+    title: "Bukit Safa",
+    text: "Saie bermula di sini. \"Sesungguhnya Safa dan Marwah itu sebahagian daripada syiar agama Allah\" (Al-Baqarah 2:158). Sunat menghadap Kaabah, mengangkat tangan dan berdoa sebelum berjalan ke Marwah.",
+    x: 535,
+    y: 505,
+    look: { x: 535, y: 0 },
+    pitch: 0.06,
+    q: "Mount Safa Masjid al-Haram",
+  },
+  {
+    scene: "makkah",
+    title: "Lampu hijau Mas'a",
+    text: "Di antara dua lampu hijau, lelaki disunatkan berlari-lari anak. Wanita berjalan seperti biasa. Jarak Safa ke Marwah kira-kira 395 m, jadi tujuh perjalanan hampir 2.8 km.",
+    x: 535,
+    y: 165,
+    look: { x: 535, y: -200 },
+    pitch: 0.15,
+    q: "Masaa Safa Marwa",
+  },
+  {
+    scene: "makkah",
+    title: "Bukit Marwah",
+    text: "Saie berakhir di Marwah selepas perjalanan ketujuh. Selepas itu jemaah umrah bercukur atau bergunting untuk bertahallul.",
+    x: 535,
+    y: -505,
+    look: { x: 535, y: 0 },
+    pitch: 0.06,
+    q: "Mount Marwah Masjid al-Haram",
+  },
+  {
+    scene: "mina",
+    title: "Khemah Mina",
+    text: "Mina dikenali sebagai bandar khemah. Jemaah bermalam di sini pada 8 Zulhijjah (sunat) dan pada hari-hari Tasyrik (wajib). Setiap maktab mempunyai nombor khemah sendiri, jadi hafal nombor maktab anda.",
+    x: 150,
+    y: 150,
+    look: { x: 220, y: 230 },
+    pitch: 0.12,
+    q: "Mina tent city",
+  },
+  {
+    scene: "arafah",
+    title: "Jabal Rahmah",
+    text: "Bukit setinggi kira-kira 70 m dari dataran Arafah dengan tiang putih di puncaknya. Rasulullah SAW berwukuf berhampiran batu-batu besar di kakinya. Mendaki bukit ini bukan amalan haji; wukuf sah di mana-mana dalam sempadan Arafah.",
+    x: 290,
+    y: -250,
+    look: { x: 430, y: -330 },
+    pitch: 0.2,
+    q: "Jabal al-Rahmah Arafat",
+  },
+  {
+    scene: "arafah",
+    title: "Masjid Namirah",
+    text: "Khutbah Arafah disampaikan di masjid ini. Bahagian hadapannya berada dalam Wadi Uranah, iaitu di luar sempadan Arafah. Masjid ini mempunyai enam menara.",
+    x: -385,
+    y: -290,
+    look: { x: -385, y: -420 },
+    pitch: 0.22,
+    q: "Namirah Mosque Arafat",
+  },
+  {
+    scene: "arafah",
+    title: "Sempadan Arafah",
+    text: "Papan kuning menandakan sempadan Arafah. Kawasan di seberangnya (Wadi Uranah) bukan sebahagian daripada Arafah. Wukuf di luar sempadan tidak sah.",
+    x: -350,
+    y: 150,
+    look: { x: -600, y: 150 },
+    pitch: 0.12,
+    q: "Arafat boundary Wadi Uranah",
+  },
+  {
+    scene: "muzdalifah",
+    title: "Masy'aril Haram, Muzdalifah",
+    text: "\"Maka berzikirlah kepada Allah di Masy'aril Haram\" (Al-Baqarah 2:198). Jemaah bermalam di Muzdalifah dan mengutip batu untuk melontar.",
+    x: 0,
+    y: -330,
+    look: { x: 0, y: -470 },
+    pitch: 0.15,
+    q: "Al-Mash'ar al-Haram Mosque Muzdalifah",
+  },
+  {
+    scene: "mina",
+    title: "Jamrah Aqabah",
+    text: "Jamrah paling hampir dengan Makkah, satu-satunya yang dilontar pada 10 Zulhijjah (7 biji). Dinding jamrah memanjang menembusi setiap tingkat Jambatan Jamarat supaya jemaah boleh melontar dari mana-mana tingkat.",
+    x: -400,
+    y: -345,
+    look: { x: -400, y: -420 },
+    pitch: 0.3,
+    q: "Jamarat Bridge Mina",
+  },
+];
+
 const MODELS3D: Model3D[] = [
   // Kaabah dibina dengan Blender oleh blender/kaabah.py (termasuk Hijir Ismail, pintu, Mizab & Hajarul Aswad)
   { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },

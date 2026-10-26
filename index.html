@@ -33,6 +33,7 @@
       <nav class="tools" aria-label="Menu">
         <button class="tool t3d" id="t3d" type="button" aria-pressed="false"><span>Paparan 3D</span></button>
         <button class="tool" id="tMap" type="button" data-ic="map"><span>Peta</span></button>
+        <button class="tool" id="t360" type="button" data-ic="pano"><span>Lawatan 360°</span></button>
         <button class="tool" id="tGuide" type="button" data-ic="book"><span>Panduan</span></button>
         <button class="tool" id="tAch" type="button" data-ic="trophy"><span>Pencapaian</span></button>
         <button class="tool" id="tAudio" type="button"><span>Audio</span></button>
@@ -111,6 +112,26 @@
       </div>
     </div>
   </div>
+
+  <section class="tour" id="tour" hidden aria-label="Lawatan 360°">
+    <div class="tour-card">
+      <div class="tour-k" id="tourK"></div>
+      <h3 class="tour-t" id="tourT"></h3>
+      <p class="tour-p" id="tourP"></p>
+      <div class="tour-cr" id="tourCr"></div>
+      <div class="tour-links">
+        <a class="tour-a" id="tourG" target="_blank" rel="noopener" data-ic="link"><span>Foto 360° sebenar (Google Maps)</span></a>
+        <a class="tour-a" id="tourX" target="_blank" rel="noopener" hidden data-ic="link"><span></span></a>
+      </div>
+      <div class="tour-btns">
+        <button class="btn ghost" id="tourPrev" type="button">‹ Sebelum</button>
+        <button class="btn ghost" id="tourSpin" type="button" aria-pressed="true">Putar</button>
+        <button class="btn primary" id="tourNext" type="button">Seterusnya ›</button>
+        <button class="btn gold" id="tourEnd" type="button">Tamat</button>
+      </div>
+      <div class="tour-hint">Seret skrin untuk memandang sekeliling · roda tetikus / cubit untuk zum</div>
+    </div>
+  </section>
 
   <div class="doa" id="doa" hidden role="status">
     <button class="doa-x" id="doaX" type="button" aria-label="Tutup kad doa" data-ic="close"></button>

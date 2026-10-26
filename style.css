@@ -239,6 +239,21 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--gold-hi); o
 .doa-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .doa-play { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--haram-3); background: transparent; color: var(--haram-3); border-radius: 999px; padding: 4px 12px 4px 9px; font-weight: 800; font-size: 12px; }
 .doa-play svg { font-size: 15px; }
+.hud.touring { display: none; }
+.tour { position: absolute; left: 0; right: 0; bottom: 0; z-index: 12; display: flex; justify-content: center; padding: 0 var(--gx-r) calc(14px + env(safe-area-inset-bottom, 0px)) var(--gx-l); pointer-events: none; }
+.tour-card { pointer-events: auto; width: min(100%, 620px); background: rgba(255, 253, 244, 0.96); color: var(--ink); border: 2px solid var(--gold); border-radius: 18px; padding: 12px 16px 10px; box-shadow: 0 10px 30px rgba(8, 42, 32, 0.35); display: grid; gap: 6px; }
+.tour-k { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--haram-3); }
+.tour-t { margin: 0; font-family: var(--f-disp); font-size: 20px; line-height: 1.15; color: var(--haram-ink, #0f4636); }
+.tour-p { margin: 0; font-size: 13.5px; line-height: 1.45; }
+.tour-cr { font-size: 11px; color: var(--gold-lo); font-weight: 800; }
+.tour-links { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.tour-a { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 800; color: #1f6fb4; text-decoration: none; }
+.tour-a svg { font-size: 14px; }
+.tour-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.tour-btns .btn { flex: 1 1 auto; min-width: 0; padding: 8px 10px; }
+#tourSpin[aria-pressed="false"] { opacity: 0.6; }
+.tour-hint { font-size: 11px; color: var(--ink-2); text-align: center; }
+@media (max-width: 760px) { #t360 { display: none; } .tour-t { font-size: 17px; } .tour-p { font-size: 12.5px; } .tour-hint { display: none; } }
 .gsub { margin: 14px 0 6px; font-weight: 800; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--haram-3); }
 
 /* ---------- modal ---------- */

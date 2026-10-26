@@ -2435,7 +2435,8 @@ function drawOverlay3D(): void {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const maxD = C3.mode === "top" ? 260 : 120;
-  for (const L of scene.labels) {
+  // foto 360° sebenar dipaparkan: label dunia 3D tidak sepadan dengan foto
+  for (const L of TOUR.pano ? [] : scene.labels) {
     const h3 = L.h3 ?? (L.kind === "place" ? 4 : 2);
     const s = proj(L.x3 ?? L.x, L.y3 ?? L.y, h3);
     if (!s || s.d > maxD) continue;

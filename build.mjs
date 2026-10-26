@@ -2,7 +2,7 @@
 // Guna: node build.mjs   (jalankan `tsc -p tsconfig.json` dahulu)
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 writeFileSync("models/jemaah-v1.glb", Buffer.from(readFileSync("models/jemaah-v1.glb.b64", "utf8").trim(), "base64"));
-const order = ["00-config", "01-util", "02-draw", "03-scenes", "04-steps", "05-ui", "07-three", "08-miqat", "09-character", "06-game"];
+const order = ["00-config", "01-util", "02-draw", "03-scenes", "04-steps", "05-ui", "07-three", "08-miqat", "09-character", "10-lawatan", "06-game"];
 const js = '"use strict";\n(() => {\n' + order.map((f) => readFileSync(`build/js/${f}.js`, "utf8").replace(/^"use strict";\s*/m, "")).join("\n") + "\n})();\n";
 mkdirSync("dist", { recursive: true });
 writeFileSync("dist/main.js", js);

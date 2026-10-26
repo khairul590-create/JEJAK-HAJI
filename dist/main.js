@@ -264,6 +264,159 @@ const READ = {
 <p class="fact"><b>Dalam game ini:</b> meter <b>tenaga</b> berkurang apabila kamu berjalan, lebih cepat semasa berlari dan di tempat panas pada waktu siang. Berdiri diam untuk berehat, atau tekan <b>Minum</b> (kekunci F) untuk meneguk air. Botol diisi semula di tong Zamzam dan di dalam bas. Ciri ini boleh dimatikan dalam Tetapan.</p>`,
     },
 };
+const LAWATAN = [
+    {
+        scene: "miqat",
+        title: "Masjid Miqat Bir Ali",
+        text: "Miqat Zulhulaifah bagi jemaah dari Madinah, kira-kira 14 km dari Masjid Nabawi. Di sinilah jemaah memakai ihram, solat sunat dua rakaat dan berniat. Menaranya setinggi kira-kira 62 m.",
+        x: 0,
+        y: -150,
+        look: { x: 0, y: -330 },
+        pitch: 0.18,
+        q: "Dhul Hulaifah Mosque Bir Ali",
+    },
+    {
+        scene: "makkah",
+        title: "Pintu King Abdul Aziz",
+        text: "Pintu utama di sebelah selatan Masjidil Haram. Masuk dengan kaki kanan sambil membaca doa masuk masjid. Menara Jam (Abraj al-Bait) berdiri di seberang dataran di belakang pintu ini.",
+        x: 0,
+        y: 650,
+        look: { x: 0, y: 0 },
+        pitch: 0.12,
+        q: "King Abdulaziz Gate Masjid al-Haram",
+    },
+    {
+        scene: "makkah",
+        title: "Garisan Hajarul Aswad",
+        text: "Setiap pusingan tawaf bermula dan berakhir di garisan ini, segaris dengan Hajarul Aswad di penjuru timur Kaabah. Lampu hijau di dinding menandakannya. Ketika bertawaf, Kaabah sentiasa di sebelah kiri.",
+        x: 215,
+        y: -25,
+        look: { x: 0, y: 0 },
+        pitch: 0.12,
+        q: "Kaaba Masjid al-Haram",
+        ext: { label: "Panorama 360° (360Cities)", url: "https://www.360cities.net/image/al-masjid-al-haram-al-haram-mosque-1" },
+    },
+    {
+        scene: "makkah",
+        title: "Maqam Ibrahim",
+        text: "Batu tempat Nabi Ibrahim AS berdiri ketika membina Kaabah, kini dalam bekas kaca berbingkai emas. Selepas tawaf, sunat solat dua rakaat di belakangnya jika tidak sesak.",
+        x: 112,
+        y: -112,
+        look: { x: 50, y: -50 },
+        pitch: 0.05,
+        q: "Maqam Ibrahim",
+    },
+    {
+        scene: "makkah",
+        title: "Hijir Ismail",
+        text: "Kawasan separuh bulatan berdinding rendah di sisi barat laut Kaabah. Ia sebahagian daripada Kaabah, jadi tawaf mesti di luarnya. Mizab (pancur emas) di bumbung mengalirkan air hujan ke kawasan ini.",
+        x: -82,
+        y: -82,
+        look: { x: 0, y: 0 },
+        pitch: 0.15,
+        q: "Hijr Ismail Kaaba",
+    },
+    {
+        scene: "makkah",
+        title: "Mataf & serambi Uthmaniyah",
+        text: "Mataf ialah lantai marmar putih di sekeliling Kaabah tempat bertawaf. Ia dikelilingi serambi Uthmaniyah yang bergerbang dan berkubah kecil, serta mataf bertingkat untuk menampung lebih ramai jemaah.",
+        x: 0,
+        y: 300,
+        look: { x: 0, y: 0 },
+        pitch: 0.2,
+        q: "Mataf Masjid al-Haram",
+    },
+    {
+        scene: "makkah",
+        title: "Bukit Safa",
+        text: "Saie bermula di sini. \"Sesungguhnya Safa dan Marwah itu sebahagian daripada syiar agama Allah\" (Al-Baqarah 2:158). Sunat menghadap Kaabah, mengangkat tangan dan berdoa sebelum berjalan ke Marwah.",
+        x: 535,
+        y: 505,
+        look: { x: 535, y: 0 },
+        pitch: 0.06,
+        q: "Mount Safa Masjid al-Haram",
+    },
+    {
+        scene: "makkah",
+        title: "Lampu hijau Mas'a",
+        text: "Di antara dua lampu hijau, lelaki disunatkan berlari-lari anak. Wanita berjalan seperti biasa. Jarak Safa ke Marwah kira-kira 395 m, jadi tujuh perjalanan hampir 2.8 km.",
+        x: 535,
+        y: 165,
+        look: { x: 535, y: -200 },
+        pitch: 0.15,
+        q: "Masaa Safa Marwa",
+    },
+    {
+        scene: "makkah",
+        title: "Bukit Marwah",
+        text: "Saie berakhir di Marwah selepas perjalanan ketujuh. Selepas itu jemaah umrah bercukur atau bergunting untuk bertahallul.",
+        x: 535,
+        y: -505,
+        look: { x: 535, y: 0 },
+        pitch: 0.06,
+        q: "Mount Marwah Masjid al-Haram",
+    },
+    {
+        scene: "mina",
+        title: "Khemah Mina",
+        text: "Mina dikenali sebagai bandar khemah. Jemaah bermalam di sini pada 8 Zulhijjah (sunat) dan pada hari-hari Tasyrik (wajib). Setiap maktab mempunyai nombor khemah sendiri, jadi hafal nombor maktab anda.",
+        x: 150,
+        y: 150,
+        look: { x: 220, y: 230 },
+        pitch: 0.12,
+        q: "Mina tent city",
+    },
+    {
+        scene: "arafah",
+        title: "Jabal Rahmah",
+        text: "Bukit setinggi kira-kira 70 m dari dataran Arafah dengan tiang putih di puncaknya. Rasulullah SAW berwukuf berhampiran batu-batu besar di kakinya. Mendaki bukit ini bukan amalan haji; wukuf sah di mana-mana dalam sempadan Arafah.",
+        x: 290,
+        y: -250,
+        look: { x: 430, y: -330 },
+        pitch: 0.2,
+        q: "Jabal al-Rahmah Arafat",
+    },
+    {
+        scene: "arafah",
+        title: "Masjid Namirah",
+        text: "Khutbah Arafah disampaikan di masjid ini. Bahagian hadapannya berada dalam Wadi Uranah, iaitu di luar sempadan Arafah. Masjid ini mempunyai enam menara.",
+        x: -385,
+        y: -290,
+        look: { x: -385, y: -420 },
+        pitch: 0.22,
+        q: "Namirah Mosque Arafat",
+    },
+    {
+        scene: "arafah",
+        title: "Sempadan Arafah",
+        text: "Papan kuning menandakan sempadan Arafah. Kawasan di seberangnya (Wadi Uranah) bukan sebahagian daripada Arafah. Wukuf di luar sempadan tidak sah.",
+        x: -350,
+        y: 150,
+        look: { x: -600, y: 150 },
+        pitch: 0.12,
+        q: "Arafat boundary Wadi Uranah",
+    },
+    {
+        scene: "muzdalifah",
+        title: "Masy'aril Haram, Muzdalifah",
+        text: "\"Maka berzikirlah kepada Allah di Masy'aril Haram\" (Al-Baqarah 2:198). Jemaah bermalam di Muzdalifah dan mengutip batu untuk melontar.",
+        x: 0,
+        y: -330,
+        look: { x: 0, y: -470 },
+        pitch: 0.15,
+        q: "Al-Mash'ar al-Haram Mosque Muzdalifah",
+    },
+    {
+        scene: "mina",
+        title: "Jamrah Aqabah",
+        text: "Jamrah paling hampir dengan Makkah, satu-satunya yang dilontar pada 10 Zulhijjah (7 biji). Dinding jamrah memanjang menembusi setiap tingkat Jambatan Jamarat supaya jemaah boleh melontar dari mana-mana tingkat.",
+        x: -400,
+        y: -345,
+        look: { x: -400, y: -420 },
+        pitch: 0.3,
+        q: "Jamarat Bridge Mina",
+    },
+];
 const MODELS3D = [
     // Kaabah dibina dengan Blender oleh blender/kaabah.py (termasuk Hijir Ismail, pintu, Mizab & Hajarul Aswad)
     { scene: "makkah", file: "models/kaabah.glb", x: 0, y: 0, replace: "kaabah" },
@@ -2985,6 +3138,7 @@ const ICON = {
     cam: '<svg viewBox="0 0 24 24"><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z"/><circle cx="12" cy="13" r="3.4"/></svg>',
     eye: '<svg viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
     link: '<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+    pano: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="9"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M12 3v18"/></svg>',
     bolt: '<svg viewBox="0 0 24 24"><path d="M13.5 2.5L5 13.5h6l-1 8 8.5-11h-6z" fill="currentColor" stroke="none"/></svg>',
     speak: '<svg viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6L8 10z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>',
 };
@@ -3972,6 +4126,7 @@ function openMap(tab) {
             ? journeySVG() + journeyTable() + `<p class="muted">Jarak ialah anggaran daripada sumber rujukan (Saudipedia, IslamWeb). Laluan Mina → Arafah melalui Muzdalifah.</p>`
             : `<canvas id="bigMap" class="bigmap"></canvas><p class="muted">Bulatan biru ialah kedudukan kamu; gelang emas ialah sasaran seterusnya. Peta ini dipermudahkan dan tidak mengikut skala sebenar.</p>`}</div>`,
         buttons: [
+            { label: "Lawatan 360°", kind: "gold", onClick: () => void startTour() },
             { label: "Rujukan", kind: "ghost", onClick: openRefs },
             { label: "Tutup", kind: "primary" },
         ],
@@ -6402,7 +6557,8 @@ function drawOverlay3D() {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const maxD = C3.mode === "top" ? 260 : 120;
-    for (const L of scene.labels) {
+    // foto 360° sebenar dipaparkan: label dunia 3D tidak sepadan dengan foto
+    for (const L of TOUR.pano ? [] : scene.labels) {
         const h3 = L.h3 ?? (L.kind === "place" ? 4 : 2);
         const s = proj(L.x3 ?? L.x, L.y3 ?? L.y, h3);
         if (!s || s.d > maxD)
@@ -7010,6 +7166,203 @@ function updatePilgrim(r, dt) {
         c.current = clip;
     }
     c.mixer.update(Math.min(dt, .1));
+}
+
+// =====================================================================
+//  Fail 10: LAWATAN 360° — berdiri di titik-titik utama dunia 3D game dan
+//  memandang sekeliling (kamera Mata berputar perlahan). Setiap titik ada
+//  pautan ke foto 360° sebenar. Jika LAWATAN[i].img diisi, foto 360°
+//  equirectangular itu dipaparkan sebagai sfera menggantikan dunia 3D.
+//  Kemajuan game tidak berubah: kedudukan & kamera dipulihkan apabila tamat.
+// =====================================================================
+const TOUR = {
+    on: false,
+    i: 0,
+    spin: true,
+    saved: null,
+    pano: null,
+    panoImg: "",
+};
+function tourBlocked() {
+    if (!started)
+        return "Mulakan perjalanan dahulu.";
+    if (overlayBusy || modalOpen)
+        return "Tunggu sebentar.";
+    if (tawafKind() !== null)
+        return "Selesaikan tawaf dahulu, kemudian buka Lawatan 360°.";
+    if (saieKind() !== null)
+        return "Selesaikan saie dahulu, kemudian buka Lawatan 360°.";
+    if (T.wukuf.praying)
+        return "Hentikan wukuf dahulu (tekan BERHENTI).";
+    if (insideMiqat || miqatActivity)
+        return "Keluar dari bilik Miqat dahulu.";
+    if (T.busy > 0)
+        return "Tunggu sebentar.";
+    return null;
+}
+async function startTour() {
+    if (TOUR.on)
+        return;
+    const why = tourBlocked();
+    if (why) {
+        toast(why, "info", 4000);
+        return;
+    }
+    if (!R3.active) {
+        await set3D(true);
+        if (!R3.active)
+            return; // 3D gagal dimuat (tiada internet / WebGL)
+    }
+    TOUR.saved = { scene: scene.id, x: P.x, y: P.y, dx: P.dx, dy: P.dy, mode: C3.mode, yaw: C3.yaw, pitch: C3.eyePitch, fov: C3.fov };
+    TOUR.on = true;
+    TOUR.spin = true;
+    hush();
+    hideDoa();
+    el("hud").classList.add("touring");
+    el("tour").hidden = false;
+    const here = LAWATAN.findIndex((v) => v.scene === scene.id);
+    tourGo(here >= 0 ? here : 0);
+}
+function tourGo(i) {
+    const n = LAWATAN.length;
+    TOUR.i = ((i % n) + n) % n;
+    const v = LAWATAN[TOUR.i];
+    if (scene.id !== v.scene)
+        loadScene(v.scene, { x: v.x, y: v.y });
+    P.x = v.x;
+    P.y = v.y;
+    P.moving = false;
+    C3.mode = "eye";
+    C3.yaw = Math.atan2(-(v.look.x - v.x), -(v.look.y - v.y));
+    C3.eyePitch = v.pitch ?? 0.08;
+    C3.fov = 66;
+    C3.lastDrag = T.time;
+    paintViewControls();
+    el("tourK").textContent = `Lawatan 360° · ${TOUR.i + 1}/${n} · ${SCENE_NAMES[v.scene]}`;
+    el("tourT").textContent = v.title;
+    el("tourP").textContent = v.text;
+    const cr = el("tourCr");
+    cr.textContent = v.img ? `Foto 360°${v.credit ? ": " + v.credit : ""}` : "Paparan: model 3D Jejak Haji (dipermudahkan)";
+    const g = el("tourG");
+    g.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(v.q);
+    const x = el("tourX");
+    x.hidden = !v.ext;
+    if (v.ext) {
+        x.href = v.ext.url;
+        x.lastChild.textContent = v.ext.label;
+    }
+    el("tourSpin").setAttribute("aria-pressed", String(TOUR.spin));
+    // arah kompas tengah foto: dinyatakan, atau arah pandangan awal titik ini (utara peta = -y)
+    const head = v.heading ?? (Math.atan2(v.look.x - v.x, -(v.look.y - v.y)) * 180) / Math.PI;
+    setPano(v.img ?? "", head);
+    hush();
+    // tiada klip MP3 untuk teks lawatan: guna suara pelayar (ikut tetapan Pemandu suara)
+    if (speechOn())
+        sayWeb(v.title + ". " + v.text, "ms");
+}
+function endTour() {
+    if (!TOUR.on)
+        return;
+    setPano("");
+    hush();
+    const s = TOUR.saved;
+    TOUR.on = false;
+    TOUR.saved = null;
+    el("hud").classList.remove("touring");
+    el("tour").hidden = true;
+    if (s) {
+        if (scene.id !== s.scene)
+            loadScene(s.scene, { x: s.x, y: s.y });
+        P.x = s.x;
+        P.y = s.y;
+        P.dx = s.dx;
+        P.dy = s.dy;
+        C3.mode = s.mode;
+        C3.yaw = s.yaw;
+        C3.eyePitch = s.pitch;
+        C3.fov = s.fov;
+    }
+    paintViewControls();
+    refreshHUD();
+}
+// sfera foto 360° (equirectangular) mengelilingi kamera
+function setPano(src, heading = 0) {
+    if (src === TOUR.panoImg)
+        return;
+    TOUR.panoImg = src;
+    if (TOUR.pano) {
+        R3.scene?.remove(TOUR.pano);
+        TOUR.pano.geometry.dispose();
+        const m = TOUR.pano.material;
+        m.map?.dispose();
+        m.dispose();
+        TOUR.pano = null;
+    }
+    if (R3.world)
+        R3.world.group.visible = true;
+    if (!src || !R3.scene)
+        return;
+    new THREE.TextureLoader().load(src, (tex) => {
+        if (TOUR.panoImg !== src || !R3.scene) {
+            tex.dispose();
+            return;
+        }
+        const geo = new THREE.SphereGeometry(60, 64, 40);
+        geo.scale(-1, 1, 1); // lihat permukaan dalam tanpa imej terbalik
+        const sph = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tex, depthWrite: false }));
+        // tengah imej (u = 0.5) menghala ke barat (-X); putar supaya menghala ke `heading`
+        sph.rotation.y = ((270 - heading) * Math.PI) / 180;
+        sph.renderOrder = -1;
+        R3.scene.add(sph);
+        TOUR.pano = sph;
+    }, undefined, () => {
+        toast("Foto 360° tidak dapat dimuat. Paparan model 3D digunakan.", "warn", 4500);
+        TOUR.panoImg = "";
+    });
+}
+function updateTour(dt) {
+    if (!TOUR.on)
+        return;
+    // putaran perlahan; berhenti seketika selepas pengguna menyeret skrin
+    if (TOUR.spin && T.time - C3.lastDrag > 2.5)
+        C3.yaw += dt * 0.14;
+    if (TOUR.pano && R3.camera) {
+        TOUR.pano.position.copy(R3.camera.position);
+        if (R3.world)
+            R3.world.group.visible = false;
+    }
+}
+function initTour() {
+    el("tourPrev").addEventListener("click", () => {
+        SND.play("tap");
+        tourGo(TOUR.i - 1);
+    });
+    el("tourNext").addEventListener("click", () => {
+        SND.play("tap");
+        tourGo(TOUR.i + 1);
+    });
+    el("tourEnd").addEventListener("click", () => {
+        SND.play("tap");
+        endTour();
+    });
+    el("tourSpin").addEventListener("click", () => {
+        TOUR.spin = !TOUR.spin;
+        el("tourSpin").setAttribute("aria-pressed", String(TOUR.spin));
+    });
+    el("t360").addEventListener("click", () => {
+        SND.init();
+        void startTour();
+    });
+    window.addEventListener("keydown", (e) => {
+        if (!TOUR.on)
+            return;
+        if (e.code === "Escape")
+            endTour();
+        else if (e.code === "BracketRight" || e.code === "PageDown")
+            tourGo(TOUR.i + 1);
+        else if (e.code === "BracketLeft" || e.code === "PageUp")
+            tourGo(TOUR.i - 1);
+    });
 }
 
 // =====================================================================
@@ -8141,7 +8494,7 @@ function updatePlayer(dt) {
     const raw = getInput();
     const inp = R3.active ? input3D(raw, dt) : raw;
     const mag = Math.min(1, Math.hypot(inp.x, inp.y));
-    const blocked = T.busy > 0 || overlayBusy || modalOpen;
+    const blocked = T.busy > 0 || overlayBusy || modalOpen || TOUR.on;
     if (T.wukuf.praying && mag > 0.3 && !blocked)
         stopWukuf("Wukuf dihentikan. Tekan BERDOA semula dan kekal diam.");
     const tired = SET.tenaga && S.tenaga < 15;
@@ -9146,11 +9499,13 @@ function update(dt) {
     updateTawaf(dt);
     updateSaie(dt);
     updateWukuf(dt);
-    updatePebbles();
+    // semasa Lawatan 360° kemajuan dibekukan: tiada kutip batu, langkah atau interaksi
+    if (!TOUR.on)
+        updatePebbles();
     const st = curStep();
-    if (st && st.done && !modalOpen && !overlayBusy && st.done())
+    if (st && st.done && !modalOpen && !overlayBusy && !TOUR.on && st.done())
         advance();
-    bestInteract = modalOpen || overlayBusy ? null : findInteract();
+    bestInteract = modalOpen || overlayBusy || TOUR.on ? null : findInteract();
     if (bestInteract) {
         const en = bestInteract.enabled();
         setAct(en ? "on" : "lock", bestInteract.label(), bestInteract.icon);
@@ -9162,6 +9517,7 @@ function update(dt) {
     cam.x = lerp(cam.x, P.x, Math.min(1, dt * 6));
     // geser kamera sedikit ke utara kerana HUD atas lebih tebal daripada kawalan bawah
     cam.y = lerp(cam.y, P.y - (H * 0.08) / cam.zoom, Math.min(1, dt * 6));
+    updateTour(dt);
     update3D(dt);
     T.hudT -= dt;
     if (T.hudT <= 0) {
@@ -9273,6 +9629,7 @@ function boot(hot) {
     applyMiniSetting();
     applyTenagaSetting();
     initInput();
+    initTour();
     if (SET.gyro)
         void setGyro(true, true);
     resize();
@@ -9316,6 +9673,7 @@ window.__jh = {
     },
     finish: () => advance(),
     closeModal: () => closeModal(),
+    tour: { start: () => startTour(), go: (i) => tourGo(i), end: () => endTour(), list: LAWATAN, get state() { return TOUR; } },
     models: MODELS3D,
     C3,
     R3,

@@ -43,6 +43,8 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   (Panduan → Panduan jemaah).
 - **Tawaf 3D:** serambi Uthmaniyah dengan gerbang runcing berbatu silih dan deretan kubah kecil, mataf bertingkat tiga,
   lampu hijau penanda garisan Hajarul Aswad, anak panah lawan arah jam di lantai dan dial kemajuan pusingan.
+- **Lawatan 360°:** 15 titik pandang dari Miqat hingga Jamrah Aqabah dalam kamera Mata yang berputar, dengan penerangan dan
+  pautan ke foto 360° sebenar. Foto 360° sendiri boleh dimasukkan (`panorama/`). Lihat [docs/PANORAMA-360.md](docs/PANORAMA-360.md).
 - **Wukuf 3D:** gerbang papan sempadan Arafah dwibahasa, tiang semburan air berkabus, Masjid Namirah enam menara, Jabal Rahmah
   berbatu dengan jemaah di lereng, penunjuk ARAH KIBLAT (BERDOA menghadap kiblat), dial matahari Zohor → Maghrib dan langit
   senja menjelang akhir wukuf.

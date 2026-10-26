@@ -21,6 +21,7 @@
     "src/06-game.ts",
     "src/07-three.ts",
     "src/08-miqat.ts",
-    "src/09-character.ts"
+    "src/09-character.ts",
+    "src/10-lawatan.ts"
   ]
 }
