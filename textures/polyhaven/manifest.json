@@ -1,0 +1,170 @@
+{
+  "provider": "Poly Haven",
+  "downloaded_at_utc": "2026-10-26T08:06:21.254014+00:00",
+  "license": "CC0-1.0",
+  "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "provider_license_url": "https://polyhaven.com/license",
+  "usage_status": "Staged assets only; not yet assigned to game materials.",
+  "assets": [
+    {
+      "id": "marble_01",
+      "name": "Marble 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "source_page": "https://polyhaven.com/a/marble_01",
+      "intended_use": "Marmar untuk calon permukaan mataf",
+      "maps": [
+        {
+          "role": "color",
+          "path": "marble_01/color.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 119204,
+          "sha256": "79dcdb4209bd433a13f63a587b9bccd5a98c0fb53f2ebed4cbacdb43d2210558",
+          "color_space": "sRGB",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/marble_01/marble_01_diff_1k.png",
+          "source_bytes": 1330755,
+          "source_md5": "44220ada5f12a7d192bbcaae185173e4",
+          "source_sha256": "3dca2e4d474d2be25efb41c0fdc6f3c62121fb6a6cd56bce8b85e2970e58cda1",
+          "processing": "Converted from upstream 1K PNG to 1024x1024 JPEG quality 85, RGB"
+        },
+        {
+          "role": "normal",
+          "path": "marble_01/normal.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 196383,
+          "sha256": "6030d2d32ee620b32785cfd1cb2ca2e383fa6f2eb8060f1112183c8479e35597",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/marble_01/marble_01_nor_gl_1k.png",
+          "source_bytes": 638341,
+          "source_md5": "795c424f8a8e24be7229d08c6d66fe21",
+          "source_sha256": "fc704b82aaff2634ebadd1939c8e675cd6cc8280953c1d28db7f66b4c6b6dbab",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, OpenGL tangent-space normal"
+        },
+        {
+          "role": "roughness",
+          "path": "marble_01/roughness.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 919,
+          "sha256": "bcd735b2fd94028e2f7b9109c5d6a2180c7128ecaf1a8ccf2e0b08788fda9493",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/marble_01/marble_01_rough_1k.png",
+          "source_bytes": 1452577,
+          "source_md5": "10a283de8745685ee09c87bd12e6cd79",
+          "source_sha256": "0311debbf570016b658d09b1a7190493520cf50a033168dd260629bb86fedbe4",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, grayscale"
+        }
+      ]
+    },
+    {
+      "id": "sand_01",
+      "name": "Sand 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "source_page": "https://polyhaven.com/a/sand_01",
+      "intended_use": "Pasir untuk calon permukaan kawasan luar",
+      "maps": [
+        {
+          "role": "color",
+          "path": "sand_01/color.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 206697,
+          "sha256": "1f3ffebee64e02cb2ccde39481f0b21c1feb72bf72a39dd32d39954a567b2fa9",
+          "color_space": "sRGB",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sand_01/sand_01_diff_1k.png",
+          "source_bytes": 6244167,
+          "source_md5": "2a0bb026ff6270a8b633f6a9a3492e58",
+          "source_sha256": "3dcd4005e95a3e95ce01f7c35f41b36f2051e562226d2e3589e21652aa326e1e",
+          "processing": "Converted from upstream 1K PNG to 1024x1024 JPEG quality 85, RGB"
+        },
+        {
+          "role": "normal",
+          "path": "sand_01/normal.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 550095,
+          "sha256": "a03f4a3adfffe89772d52b7d7195f7d4f8198ab8fa43f5f533fd11ba72453bb9",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sand_01/sand_01_nor_gl_1k.png",
+          "source_bytes": 5683522,
+          "source_md5": "4005969e85765551ccf8f121e8ee3bbd",
+          "source_sha256": "e9782a5706185ed78122945a84c9a618daa9fd90f8bdec77e812a4a818b32bb5",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, OpenGL tangent-space normal"
+        },
+        {
+          "role": "roughness",
+          "path": "sand_01/roughness.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 95154,
+          "sha256": "4fe9fde48ddedf1bdc00f37d3b78c04822bf9a4aec03cce36ba8b371981ba6c9",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/sand_01/sand_01_rough_1k.png",
+          "source_bytes": 1827033,
+          "source_md5": "1b0b2c4ead63bc95240aea9739b9a670",
+          "source_sha256": "8f1ed4bd641341fb7ec6f028d66e62321662d0af3cbc1d3f635a1559d2877fc7",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, grayscale"
+        }
+      ]
+    },
+    {
+      "id": "rock_face",
+      "name": "Rock Face",
+      "authors": {
+        "Greg Zaal": "Photography",
+        "Dario Barresi": "Processing"
+      },
+      "source_page": "https://polyhaven.com/a/rock_face",
+      "intended_use": "Batu untuk calon permukaan gunung",
+      "maps": [
+        {
+          "role": "color",
+          "path": "rock_face/color.jpg",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 164863,
+          "sha256": "12b8a175784f2700a790677d1335ea374cc0af9b4bd6718bc03e9abbe6fe39e1",
+          "color_space": "sRGB",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/rock_face/rock_face_diff_1k.png",
+          "source_bytes": 5448230,
+          "source_md5": "ace5b9671b95c13f51d55ae6aebfef0a",
+          "source_sha256": "e8c0041058d30b72f791b619c011500a5f21cf6c36f0c7e8bbfb99088a95555f",
+          "processing": "Converted from upstream 1K PNG to 1024x1024 JPEG quality 85, RGB"
+        },
+        {
+          "role": "normal",
+          "path": "rock_face/normal.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 555171,
+          "sha256": "c640881a1955de7632ada7049a13e7f99ae9d8815762614c36669dc64a8acfda",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/rock_face/rock_face_nor_gl_1k.png",
+          "source_bytes": 5796887,
+          "source_md5": "9d13dc8de098d5c2a5bee844c317b946",
+          "source_sha256": "969bafe93574768ba2efc9874c6d96ce8326f8e8908f2b1734eddeca14c8ef10",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, OpenGL tangent-space normal"
+        },
+        {
+          "role": "roughness",
+          "path": "rock_face/roughness.png",
+          "width": 512,
+          "height": 512,
+          "bytes": 919,
+          "sha256": "bcd735b2fd94028e2f7b9109c5d6a2180c7128ecaf1a8ccf2e0b08788fda9493",
+          "color_space": "linear-data",
+          "source_url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/rock_face/rock_face_rough_1k.png",
+          "source_bytes": 1561719,
+          "source_md5": "76f3046b958dad65712f05aa87eb3318",
+          "source_sha256": "8166fea57c520baf39a1665b2b44e594400d96d2069b3062365566531048f352",
+          "processing": "Converted from upstream 1K PNG to 512x512 lossless PNG, grayscale"
+        }
+      ]
+    }
+  ]
+}
