@@ -22,6 +22,7 @@ build.mjs         gabung semuanya menjadi satu fail HTML
 dist/jejak-haji.html   ← fail siap main (satu fail sahaja)
 models/           model 3D .glb daripada Blender (Kaabah) + fail sumber .blend
 blender/          skrip Blender yang menjana model (kaabah.py, characters.py, kartun.py)
+docs/GAME-DOC.md  dokumen reka bentuk 1 muka surat: objektif, gelung permainan, gaya, had prestasi
 docs/BLENDER.md   panduan membina model & render dengan Blender
 ```
 
