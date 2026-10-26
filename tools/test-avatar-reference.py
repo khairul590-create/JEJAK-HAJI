@@ -92,10 +92,13 @@ def main():
                     checks.append({'width':width,'pose':name,'bounds':result})
                     if width==1200:
                         page.locator('#stage').screenshot(path=str(root/f'webgl-{name}.png'))
-                page.locator('#pause').click()
                 assert page.locator('#pause').get_attribute('aria-pressed')=='true'
                 assert page.evaluate('window.__avatarProof.getState().paused')
                 page.locator('#pause').click()
+                assert page.locator('#pause').get_attribute('aria-pressed')=='false'
+                assert not page.evaluate('window.__avatarProof.getState().paused')
+                page.locator('#pause').click()
+                assert page.evaluate('window.__avatarProof.getState().paused')
                 page.locator('#animation').select_option('Idle')
                 with page.expect_download() as dl:
                     page.get_by_role('link',name='Muat turun GLB',exact=True).click()
