@@ -38,7 +38,9 @@ type M3 =
   | { k: "sign"; x: number; y: number; text: string }
   | { k: "pole"; x: number; y: number }
   | { k: "mountains"; x0: number; y0: number; x1: number; y1: number; col: string; seed: number }
-  | { k: "stars" };
+  | { k: "stars" }
+  // dewan Mas'a: west/east = bukaan pintu [y1, y2] pada dinding barat/timur
+  | { k: "masa"; x0: number; x1: number; y0: number; y1: number; g1: number; g2: number; west: [number, number][]; east: [number, number][] };
 let M3_TARGET: M3[] | null = null;
 function m3(d: M3): void {
   if (M3_TARGET) M3_TARGET.push(d);
@@ -578,13 +580,13 @@ function tentProp(x: number, y: number, w: number, d: number, col = "#fbfbf7", h
   };
 }
 
-function rockCluster(cx: number, cy: number, w: number, seed: number, col = "#9a8a73"): Drawable {
+function rockCluster(cx: number, cy: number, w: number, seed: number, col = "#9a8a73", in3d = true): Drawable {
   const r = mulberry32(seed);
   const rocks: { x: number; y: number; s: number; h: number; k: number }[] = [];
   for (let i = 0; i < 9; i++)
     rocks.push({ x: cx + (r() - 0.5) * w, y: cy + (r() - 0.5) * w * 0.35, s: 12 + r() * 18, h: 6 + r() * 16, k: r() });
   rocks.sort((a, b) => a.y - b.y);
-  m3({ k: "rocks", x: cx, y: cy, w, seed, col });
+  if (in3d) m3({ k: "rocks", x: cx, y: cy, w, seed, col });
   return {
     y: cy + w * 0.18,
     draw: (c) => {

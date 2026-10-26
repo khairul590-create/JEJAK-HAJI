@@ -64,7 +64,7 @@ P.hair = "#1d1a17";
 
 const T = {
   tawaf: { active: false, cum: 0, last: 0, valid: true, wrong: 0, seg: -1, outT: 0, ramalRun: 0, ramalTot: 0, bumps: 0, lapIst: -1, inHijr: false },
-  saie: { greenIn: false, green: 0, run: 0, legDoa: false, berdoaHere: false, doaCount: 0, femaleTip: false },
+  saie: { greenIn: false, green: 0, run: 0, legDoa: false, berdoaHere: false, doaCount: 0, femaleTip: false, runTip: false },
   wukuf: { praying: false, cardT: 0, idx: 0 },
   busy: 0,
   busyCb: null as (() => void) | null,
@@ -627,6 +627,7 @@ function startSaie(): void {
   s.legDoa = false;
   s.berdoaHere = false;
   s.doaCount = 0;
+  s.runTip = false;
   showDoa("safa");
   toast("Saie bermula di Safa. Hadap Kaabah dan tekan BERDOA (sunat), kemudian berjalan ke Marwah.", "info", 6000);
   finishStep(startId);
@@ -637,8 +638,12 @@ function actBerdoaBukit(): void {
   s.doaCount++;
   P.pose = "pray";
   T.poseT = 1.6;
-  P.dx = -1;
-  P.dy = 0;
+  // hadap Kaabah (pusat peta)
+  const d = Math.hypot(P.x, P.y) || 1;
+  P.dx = -P.x / d;
+  P.dy = -P.y / d;
+  if (R3.active && C3.mode !== "top") C3.yaw = Math.atan2(-P.dx, -P.dy);
+  toast("Hadap Kaabah, angkat kedua-dua tangan dan bertakbir: Allahu Akbar ×3, kemudian berdoa.", "info", 4500);
   showDoa("takbir");
   S.stars += 1;
   if (s.doaCount >= 8) ach("bukit");
@@ -674,6 +679,9 @@ function updateSaie(dt: number): void {
       toast("Bagus! Kamu berlari-lari anak di antara dua lampu hijau (sunat bagi lelaki).", "ok", 4000);
       S.stars += 2;
       ach("hijau");
+    } else if (S.gender === "L" && s.green > 0.6 && s.run / s.green < 0.3 && !s.runTip) {
+      s.runTip = true;
+      toast("Lelaki disunatkan berlari-lari anak di antara dua lampu hijau. Tekan Laju (atau Shift) pada perjalanan seterusnya.", "info", 6000);
     }
   }
   if ((going === "marwah" && atMarwah) || (going === "safa" && atSafa)) {
@@ -721,6 +729,15 @@ function saieCounter(): Counter {
       ? { text: S.gender === "L" ? "Lampu hijau: lelaki sunat berlari-lari anak (Laju)" : "Lampu hijau: wanita berjalan seperti biasa", bad: false }
       : null,
   };
+}
+// Penunjuk arah Kaabah: di atas bukit sebelum berdoa (diilhamkan oleh prototaip saie 3D jemaah lain)
+function needKaabahHint(): boolean {
+  if (!started || scene.id !== "makkah" || !inMasa(P)) return false;
+  const onSafa = P.y > MASA.safaY;
+  const onMarwah = P.y < MASA.marwahY;
+  if (isStep("saie_start", "saie_haji_start")) return onSafa;
+  if (saieKind() === null || T.saie.berdoaHere) return false;
+  return (S.saieAt === "safa" && onSafa) || (S.saieAt === "marwah" && onMarwah);
 }
 function kind2title(): string {
   return saieKind() === "haji" ? "Saie haji — perjalanan" : "Saie umrah — perjalanan";
@@ -1431,6 +1448,7 @@ function render(): void {
   // sasaran & sorotan interaksi
   const target = started ? stepTarget() : null;
   if (target && SET.arrow) drawTargetRing(target);
+  if (started) drawSaieFloor();
   if (started && bestInteract && bestInteract.ring && bestInteract.enabled()) {
     const pulse = 0.5 + 0.5 * Math.sin(T.time * 5);
     ctx.strokeStyle = `rgba(255,255,255,${0.5 + pulse * 0.4})`;
@@ -1505,7 +1523,114 @@ function render(): void {
   if (started) {
     drawNameTag();
     if (target && SET.arrow) drawArrow(target);
+    if (needKaabahHint()) drawKaabahHint();
   }
+}
+
+// anak panah biru di lantai Mas'a menunjuk arah perjalanan saie
+function drawSaieFloor(): void {
+  if (scene.id !== "makkah" || !saieKind() || !SET.arrow) return;
+  const north = S.saieCount % 2 === 0;
+  const cx = (MASA.x0 + MASA.x1) / 2;
+  const sign = north ? 1 : -1;
+  let i = 0;
+  for (let y = -430; y <= 430; y += 60, i++) {
+    if (!inView(cx, y, 30)) continue;
+    const a = 0.2 + 0.4 * (0.5 + 0.5 * Math.sin(T.time * 4 + i * 0.9 * sign));
+    ctx.save();
+    ctx.translate(cx, y);
+    if (!north) ctx.rotate(Math.PI);
+    ctx.fillStyle = `rgba(61,143,224,${a})`;
+    poly(ctx, [0, -11, 10, 0, 4, 0, 4, 10, -4, 10, -4, 0, -10, 0]);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+// anak panah hijau "KAABAH" di sekeliling watak
+function drawKaabahHint(): void {
+  const a = Math.atan2(-P.y, -P.x);
+  const s = toScreen(P.x, P.y - 20);
+  const R = 62;
+  const pulse = 1 + Math.sin(T.time * 5) * 0.08;
+  ctx.save();
+  ctx.translate(s.x + Math.cos(a) * R, s.y + Math.sin(a) * R);
+  ctx.rotate(a);
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = "#2fbf6a";
+  ctx.strokeStyle = "rgba(8,60,30,.9)";
+  ctx.lineWidth = 2;
+  poly(ctx, [15, 0, -9, -11, -4, 0, -9, 11]);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  drawPill(s.x + Math.cos(a) * (R + 30), s.y + Math.sin(a) * (R + 30), "ARAH KAABAH", "#1f7a3f");
+}
+function drawPill(x: number, y: number, text: string, bg: string): void {
+  ctx.font = `800 11px ${FONT_B}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const w = ctx.measureText(text).width + 16;
+  ctx.fillStyle = bg;
+  rrect(ctx, x - w / 2, y - 10, w, 20, 10);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.fillText(text, x, y + 0.5);
+}
+
+// jalur kemajuan saie (Safa di bawah, Marwah di atas)
+function drawSaieStrip(): void {
+  const box = el("saieStrip");
+  const on = started && scene.id === "makkah" && (saieKind() !== null || isStep("saie_start", "saie_haji_start"));
+  box.hidden = !on;
+  if (!on) return;
+  const cv = el<HTMLCanvasElement>("ssCv");
+  const r = cv.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = Math.max(20, Math.round(r.width));
+  const h = Math.max(60, Math.round(r.height));
+  if (cv.width !== w * dpr || cv.height !== h * dpr) {
+    cv.width = w * dpr;
+    cv.height = h * dpr;
+  }
+  const c = cv.getContext("2d") as CanvasRenderingContext2D;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  c.clearRect(0, 0, w, h);
+  const top = 8;
+  const bot = h - 8;
+  const Y = (y: number): number => lerp(top, bot, (y - MASA.marwahY) / (MASA.safaY - MASA.marwahY));
+  const lx = w / 2;
+  // laluan
+  c.fillStyle = "rgba(255,255,255,.16)";
+  rrect(c, lx - 9, top - 6, 18, bot - top + 12, 9);
+  c.fill();
+  // zon lampu hijau
+  c.fillStyle = "rgba(63,224,138,.75)";
+  c.fillRect(lx - 9, Y(MASA.g1), 18, Y(MASA.g2) - Y(MASA.g1));
+  // sasaran
+  const north = S.saieCount % 2 === 0 && saieKind() !== null;
+  const goalY = saieKind() === null ? null : north ? top : bot;
+  if (goalY !== null) {
+    c.fillStyle = "#f2c230";
+    circ(c, lx, goalY, 6 + Math.sin(T.time * 5) * 1.2);
+    c.fill();
+  }
+  // kedudukan jemaah
+  if (inMasa(P)) {
+    const py = clamp(Y(P.y), top, bot);
+    c.fillStyle = "#2f7de0";
+    c.strokeStyle = "#fff";
+    c.lineWidth = 2;
+    circ(c, lx, py, 6);
+    c.fill();
+    c.stroke();
+    if (saieKind() !== null) {
+      c.fillStyle = "#fff";
+      const d = north ? -1 : 1;
+      poly(c, [lx, py + d * 15, lx - 5, py + d * 9, lx + 5, py + d * 9]);
+      c.fill();
+    }
+  }
+  el("ssN").textContent = `${S.saieCount}/7`;
 }
 
 function stepTarget(): Vec | null {
@@ -1800,9 +1925,10 @@ function update(dt: number): void {
     refreshHUD();
   }
   T.miniT -= dt;
-  if (T.miniT <= 0 && SET.mini) {
+  if (T.miniT <= 0) {
     T.miniT = 0.12;
-    drawMini();
+    if (SET.mini) drawMini();
+    drawSaieStrip();
   }
   T.saveT -= dt;
   if (T.saveT <= 0) {

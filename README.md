@@ -41,6 +41,9 @@ node build.mjs           # hasilkan dist/main.js dan dist/jejak-haji.html
   Kadar boleh diubah dalam `CONFIG.tenaga` (`src/00-config.ts`).
 - **Panduan jemaah:** kesilapan lazim, langkah jika terpisah daripada rombongan, serta tenaga dan kesihatan
   (Panduan → Panduan jemaah).
+- **Saie 3D:** dewan Mas'a beratap dengan dinding gerbang dua tingkat, tiang berkepala emas, siling berlampu, zon lampu
+  hijau, papan tanda KE MARWAH / KE SAFA, anak panah biru di lantai mengikut arah perjalanan, penunjuk **ARAH KAABAH** di
+  bukit (BERDOA menghadapkan jemaah ke Kaabah) dan jalur kemajuan Safa–Marwah di sebelah kanan skrin.
 - **Giroskop:** di telefon, gerakkan telefon untuk memandang sekeliling dalam kamera Mata 3D (Tetapan).
 - **Model Blender (.glb):** model 3D luaran boleh menggantikan model asas. Lihat [docs/BLENDER.md](docs/BLENDER.md).
   Kaabah dalam paparan 3D kini dibina dengan Blender oleh `blender/kaabah.py` (`models/kaabah.glb`, sumber `models/kaabah.blend`).

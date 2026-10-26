@@ -70,6 +70,7 @@ const R3 = {
   tBeam: null as THREE.Mesh | null,
   iRing: null as THREE.Mesh | null,
   arrow: null as THREE.Mesh | null,
+  qArrow: null as THREE.Mesh | null,
   stonePool: [] as THREE.Mesh[],
   light: "" as string,
   colorT: 0,
@@ -636,14 +637,318 @@ function addGate(g: THREE.Group, x0: number, x1: number, y: number): void {
 }
 
 function addGreen(g: THREE.Group, x0: number, x1: number, y: number): void {
+  // lampu hijau: jalur bercahaya di bawah siling dewan Mas'a, merentas laluan
   const Z = y * K3;
   const L = (x1 - x0) * K3;
-  g.add(mesh(new THREE.BoxGeometry(L, 0.35, 0.5), basic("#3fe08a"), ((x0 + x1) / 2) * K3, 5.2, Z, false));
-  for (const x of [x0 + 2, x1 - 2]) {
-    g.add(mesh(new THREE.BoxGeometry(0.3, 5.2, 0.3), basic("#2fc470"), x * K3, 2.6, Z, false));
+  g.add(mesh(new THREE.BoxGeometry(L, 0.22, 0.45), basic("#3fe08a"), ((x0 + x1) / 2) * K3, HALL_H - 0.35, Z, false));
+}
+
+// ---------------------------------------------------------------------
+//  Dewan Mas'a (saie): fasad bergerbang dua tingkat, tiang putih berkepala
+//  emas, siling berlampu dengan zon lampu hijau, papan tanda tergantung
+//  dan anak panah lantai yang menunjuk arah perjalanan saie.
+// ---------------------------------------------------------------------
+const HALL_H = 10; // tinggi siling (m)
+const BAY = 50; // jarak antara tiang (px peta = 5 m)
+const MASA3 = { roof: null as THREE.Object3D | null, arrows: [] as THREE.Mesh[], box: null as Extract<M3, { k: "masa" }> | null };
+
+class QuadBatch {
+  pos: number[] = [];
+  uv: number[] = [];
+  idx: number[] = [];
+  // a, b = bawah kiri/kanan dilihat dari hadapan; c, d = atas kanan/kiri
+  add(a: number[], b: number[], c: number[], d: number[], uv: number[]): void {
+    const n = this.pos.length / 3;
+    this.pos.push(...a, ...b, ...c, ...d);
+    this.uv.push(...uv);
+    this.idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
   }
-  const glow = mesh(new THREE.PlaneGeometry(L, 2.2), basic("#6dffb0", { transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false }), ((x0 + x1) / 2) * K3, 4.1, Z, false);
-  g.add(glow);
+  build(): THREE.BufferGeometry {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(this.pos, 3));
+    g.setAttribute("uv", new THREE.Float32BufferAttribute(this.uv, 2));
+    g.setIndex(this.idx);
+    g.computeVertexNormals();
+    return g;
+  }
+}
+
+function masaFacadeTexture(): THREE.CanvasTexture {
+  // satu petak = 5 m lebar × 10 m tinggi; 51.2 px setiap meter
+  return canvasTex(
+    256,
+    512,
+    (c) => {
+      const m = 51.2;
+      const Y = (h: number): number => 512 - h * m;
+      c.fillStyle = "#f4efe3";
+      c.fillRect(0, 0, 256, 512);
+      for (let i = 0; i < 260; i++) {
+        c.fillStyle = `rgba(150,130,100,${Math.random() * 0.05})`;
+        c.fillRect(Math.random() * 256, Math.random() * 512, 2 + Math.random() * 30, 1);
+      }
+      // kaki dinding marmar
+      c.fillStyle = "#d9cdb4";
+      c.fillRect(0, Y(0.45), 256, 0.45 * m);
+      // tingkat bawah: gerbang besar
+      const arch = (x0: number, x1: number, y0: number, top: number, fill: string, line: string, lw: number): void => {
+        const r = (x1 - x0) / 2;
+        c.beginPath();
+        c.moveTo(x0, Y(y0));
+        c.lineTo(x0, Y(top) + r);
+        c.arc(x0 + r, Y(top) + r, r, Math.PI, 0);
+        c.lineTo(x1, Y(y0));
+        c.closePath();
+        c.fillStyle = fill;
+        c.fill();
+        c.strokeStyle = line;
+        c.lineWidth = lw;
+        c.stroke();
+      };
+      arch(30, 226, 0.45, 4.7, "#e6dcc7", "#c9a24a", 5);
+      arch(52, 204, 0.45, 4.2, "#ddd1b8", "rgba(201,162,74,.6)", 2);
+      // cornice & balustrad tingkat atas
+      c.fillStyle = "#e9e0cc";
+      c.fillRect(0, Y(5.75), 256, 0.55 * m);
+      c.fillStyle = "#c9a24a";
+      c.fillRect(0, Y(5.75), 256, 4);
+      c.fillRect(0, Y(5.2) - 4, 256, 4);
+      c.fillStyle = "#d8cdb6";
+      for (let x = 8; x < 256; x += 16) c.fillRect(x, Y(6.6), 6, 0.85 * m);
+      c.fillStyle = "#c9a24a";
+      c.fillRect(0, Y(6.6), 256, 3);
+      // tingkat atas: tingkap gerbang berkekisi (masyrabiah)
+      arch(70, 186, 6.7, 9.1, "#6b563c", "#c9a24a", 4);
+      c.save();
+      c.beginPath();
+      c.rect(72, Y(9.1), 112, (9.1 - 6.7) * m);
+      c.clip();
+      c.strokeStyle = "rgba(220,190,120,.55)";
+      c.lineWidth = 2;
+      for (let k = -20; k < 30; k++) {
+        c.beginPath();
+        c.moveTo(72 + k * 12, Y(6.7));
+        c.lineTo(72 + k * 12 + 120, Y(9.1));
+        c.moveTo(72 + k * 12 + 120, Y(6.7));
+        c.lineTo(72 + k * 12, Y(9.1));
+        c.stroke();
+      }
+      c.restore();
+      // frieze atas
+      c.fillStyle = "#e3d8c2";
+      c.fillRect(0, 0, 256, 0.55 * m);
+      c.fillStyle = "#c9a24a";
+      c.fillRect(0, 0.55 * m - 3, 256, 3);
+    },
+    true
+  );
+}
+
+function masaCeilingTexture(d: Extract<M3, { k: "masa" }>): THREE.CanvasTexture {
+  const len = d.y1 - d.y0;
+  const H = 2048;
+  return canvasTex(128, H, (c) => {
+    const Y = (y: number): number => ((y - d.y0) / len) * H;
+    c.fillStyle = "#ece5d6";
+    c.fillRect(0, 0, 128, H);
+    for (let y = d.y0; y < d.y1; y += BAY) {
+      const green = y + BAY / 2 > d.g1 && y + BAY / 2 < d.g2;
+      c.fillStyle = "#ddd3bf";
+      c.fillRect(0, Y(y), 128, 3);
+      c.fillStyle = green ? "#9ef0c3" : "#fffaea";
+      c.fillRect(16, Y(y) + 8, 96, Y(y + BAY) - Y(y) - 16);
+      c.strokeStyle = "#c9a24a";
+      c.lineWidth = 2;
+      c.strokeRect(12, Y(y) + 5, 104, Y(y + BAY) - Y(y) - 10);
+    }
+    for (const gy of [d.g1, d.g2]) {
+      c.fillStyle = "#2fd57a";
+      c.fillRect(0, Y(gy) - 10, 128, 20);
+    }
+  });
+}
+
+function masaSignTexture(text: string, up: boolean, bg = "#16634c"): THREE.CanvasTexture {
+  return canvasTex(512, 96, (c) => {
+    c.fillStyle = bg;
+    c.fillRect(0, 0, 512, 96);
+    c.strokeStyle = "#f3d488";
+    c.lineWidth = 6;
+    c.strokeRect(5, 5, 502, 86);
+    c.fillStyle = "#ffffff";
+    c.font = "800 40px Nunito, 'Segoe UI', sans-serif";
+    c.textAlign = "center";
+    c.textBaseline = "middle";
+    c.fillText(text, 280, 51, 380);
+    if (up) {
+      // anak panah ke hadapan
+      c.beginPath();
+      c.moveTo(60, 20);
+      c.lineTo(92, 52);
+      c.lineTo(72, 52);
+      c.lineTo(72, 78);
+      c.lineTo(48, 78);
+      c.lineTo(48, 52);
+      c.lineTo(28, 52);
+      c.closePath();
+      c.fill();
+    }
+  });
+}
+
+function addMasa(g: THREE.Group, d: Extract<M3, { k: "masa" }>): void {
+  MASA3.box = d;
+  const K = K3;
+  const xi0 = (d.x0 + 6) * K; // muka dalam dinding barat
+  const xi1 = (d.x1 - 6) * K;
+  const xo0 = (d.x0 - 6) * K; // muka luar
+  const xo1 = (d.x1 + 6) * K;
+  const zi0 = (d.y0 + 6) * K;
+  const zi1 = (d.y1 - 6) * K;
+  const solid = (gaps: [number, number][]): [number, number, boolean][] => {
+    // pecahkan dinding kepada segmen [ya, yb, pintu?]
+    const out: [number, number, boolean][] = [];
+    let y = d.y0;
+    for (const [a, b] of [...gaps].sort((p, q) => p[0] - q[0])) {
+      out.push([y, a, false], [a, b, true]);
+      y = b;
+    }
+    out.push([y, d.y1, false]);
+    return out;
+  };
+  const fac = new QuadBatch();
+  const u = (y: number): number => (y - d.y0) / BAY;
+  const LINTEL = 5.2 / HALL_H; // ambang pintu: hanya bahagian atas fasad
+  for (const [ya, yb, door] of solid(d.west)) {
+    const v0 = door ? LINTEL : 0;
+    const h0 = door ? 5.2 : 0;
+    // dalam (menghadap timur): kanan = utara
+    fac.add([xi0, h0, yb * K], [xi0, h0, ya * K], [xi0, HALL_H, ya * K], [xi0, HALL_H, yb * K], [u(yb), v0, u(ya), v0, u(ya), 1, u(yb), 1]);
+    // luar (menghadap mataf)
+    fac.add([xo0, h0, ya * K], [xo0, h0, yb * K], [xo0, HALL_H, yb * K], [xo0, HALL_H, ya * K], [u(ya), v0, u(yb), v0, u(yb), 1, u(ya), 1]);
+    if (door) fac.add([xo0, h0, ya * K], [xi0, h0, ya * K], [xi0, h0, yb * K], [xo0, h0, yb * K], [0, 0.9, 0.1, 0.9, 0.1, 1, 0, 1]);
+  }
+  for (const [ya, yb, door] of solid(d.east)) {
+    const v0 = door ? LINTEL : 0;
+    const h0 = door ? 5.2 : 0;
+    fac.add([xi1, h0, ya * K], [xi1, h0, yb * K], [xi1, HALL_H, yb * K], [xi1, HALL_H, ya * K], [u(ya), v0, u(yb), v0, u(yb), 1, u(ya), 1]);
+    fac.add([xo1, h0, yb * K], [xo1, h0, ya * K], [xo1, HALL_H, ya * K], [xo1, HALL_H, yb * K], [u(yb), v0, u(ya), v0, u(ya), 1, u(yb), 1]);
+  }
+  // dinding hujung (Safa di selatan, Marwah di utara)
+  const ux = (x: number): number => (x * 10 - d.x0) / BAY;
+  fac.add([xi1, 0, zi1], [xi0, 0, zi1], [xi0, HALL_H, zi1], [xi1, HALL_H, zi1], [ux(xi1), 0, ux(xi0), 0, ux(xi0), 1, ux(xi1), 1]);
+  fac.add([xi0, 0, zi0], [xi1, 0, zi0], [xi1, HALL_H, zi0], [xi0, HALL_H, zi0], [ux(xi0), 0, ux(xi1), 0, ux(xi1), 1, ux(xi0), 1]);
+  const fm = lam("#ffffff", { map: masaFacadeTexture(), side: THREE.DoubleSide });
+  const facade = mesh(fac.build(), fm, 0, 0, 0, false);
+  g.add(facade);
+  // bumbung luar (kelihatan dari kamera Atas) & siling dalam
+  const roof = new THREE.Group();
+  const top = mesh(new THREE.BoxGeometry(xo1 - xo0, 0.5, (d.y1 - d.y0) * K), lam("#e8e0cf"), (xo0 + xo1) / 2, HALL_H + 0.25, ((d.y0 + d.y1) / 2) * K, false);
+  roof.add(top);
+  const cq = new QuadBatch();
+  cq.add([xi0, HALL_H, zi0], [xi1, HALL_H, zi0], [xi1, HALL_H, zi1], [xi0, HALL_H, zi1], [0, 1, 1, 1, 1, 0, 0, 0]);
+  roof.add(mesh(cq.build(), basic("#ffffff", { map: masaCeilingTexture(d) }), 0, -0.02, 0, false));
+  g.add(roof);
+  MASA3.roof = roof;
+  // tiang: batang putih, tapak & kepala emas; jalur hijau dalam zon lampu hijau
+  const shafts: THREE.BufferGeometry[] = [];
+  const golds: THREE.BufferGeometry[] = [];
+  const greens: THREE.BufferGeometry[] = [];
+  const inGap = (y: number, gaps: [number, number][]): boolean => gaps.some(([a, b]) => y > a - 12 && y < b + 12);
+  for (let y = d.y0 + BAY; y < d.y1 - BAY / 2; y += BAY) {
+    for (const [x, gaps] of [
+      [d.x0 + 12, d.west],
+      [d.x1 - 12, d.east],
+    ] as [number, [number, number][]][]) {
+      if (inGap(y, gaps)) continue;
+      const X = x * K;
+      const Z = y * K;
+      const sh = new THREE.CylinderGeometry(0.3, 0.34, 4.6, 12);
+      sh.translate(X, 0.35 + 2.3, Z);
+      shafts.push(sh);
+      const base = new THREE.BoxGeometry(0.85, 0.35, 0.85);
+      base.translate(X, 0.175, Z);
+      const cap = new THREE.CylinderGeometry(0.5, 0.32, 0.45, 12);
+      cap.translate(X, 4.95 + 0.225, Z);
+      golds.push(base, cap);
+      if (y > d.g1 && y < d.g2) {
+        const band = new THREE.CylinderGeometry(0.35, 0.35, 0.45, 12);
+        band.translate(X, 3.2, Z);
+        greens.push(band);
+      }
+    }
+  }
+  g.add(mesh(mergeGeos(shafts), lam("#f6f3ec")));
+  g.add(mesh(mergeGeos(golds), lam("#d4ab4f")));
+  if (greens.length) g.add(mesh(mergeGeos(greens), basic("#3fe08a"), 0, 0, 0, false));
+  // papan tanda tergantung: muka selatan dibaca jemaah menuju Marwah, muka utara menuju Safa
+  const cx = ((d.x0 + d.x1) / 2) * K;
+  const signW = Math.min(7, (xi1 - xi0) * 0.6);
+  const rodM = lam("#b99a5a");
+  const hang = (y: number, south: THREE.Texture, north: THREE.Texture): void => {
+    const Z = y * K;
+    const edge = lam("#0f4636");
+    const box = mesh(new THREE.BoxGeometry(signW, 1.0, 0.16), [edge, edge, edge, edge, basic("#ffffff", { map: south }), basic("#ffffff", { map: north })], cx, 7.6, Z, false);
+    g.add(box);
+    for (const dx of [-signW * 0.4, signW * 0.4]) g.add(mesh(new THREE.CylinderGeometry(0.03, 0.03, HALL_H - 8.1, 4), rodM, cx + dx, (HALL_H + 8.1) / 2, Z, false));
+  };
+  const toM = masaSignTexture("KE MARWAH", true);
+  const toS = masaSignTexture("KE SAFA", true);
+  for (let y = d.y0 + 200; y <= d.y1 - 200; y += 200) {
+    if (Math.abs(y - d.g1) < 40 || Math.abs(y - d.g2) < 40) continue;
+    hang(y, toM, toS);
+  }
+  const gStart = masaSignTexture("MULA LAMPU HIJAU", false, "#1f8a4c");
+  const gEnd = masaSignTexture("TAMAT LAMPU HIJAU", false, "#1f8a4c");
+  // ke Marwah (bergerak ke utara): masuk zon di g2, keluar di g1
+  hang(d.g2 + 12, gStart, gEnd);
+  hang(d.g1 - 12, gEnd, gStart);
+  // Bukit Safa (selatan) & Marwah (utara): batu rendah supaya tidak menghalang kamera
+  const rocks: THREE.BufferGeometry[] = [];
+  const rr = mulberry32(158);
+  for (const cy of [d.y1 - 26, d.y0 + 26]) {
+    for (let i = 0; i < 14; i++) {
+      const sz = 0.6 + rr() * 0.9;
+      const ge = new THREE.IcosahedronGeometry(sz, 0);
+      ge.scale(1.3, 0.3 + rr() * 0.18, 1.0);
+      ge.translate(cx + (rr() - 0.5) * (xi1 - xi0) * 0.85, sz * 0.1, cy * K + (rr() - 0.5) * 2.2);
+      rocks.push(ge);
+    }
+  }
+  g.add(mesh(mergeGeos(rocks), flat("#9a8a70")));
+  // anak panah lantai (arah dikemas kini setiap bingkai dalam update3D)
+  const sh = new THREE.Shape();
+  sh.moveTo(0, 1.0);
+  sh.lineTo(0.9, -0.1);
+  sh.lineTo(0.35, -0.1);
+  sh.lineTo(0.35, -0.9);
+  sh.lineTo(-0.35, -0.9);
+  sh.lineTo(-0.35, -0.1);
+  sh.lineTo(-0.9, -0.1);
+  sh.closePath();
+  const ag = new THREE.ShapeGeometry(sh);
+  ag.rotateX(-Math.PI / 2);
+  MASA3.arrows = [];
+  for (let y = d.y0 + 170; y <= d.y1 - 170; y += 60) {
+    const a = mesh(ag, basic("#3d8fe0", { transparent: true, opacity: 0.5, depthWrite: false }), cx, 0.06, y * K, false);
+    a.visible = false;
+    a.renderOrder = 2;
+    g.add(a);
+    MASA3.arrows.push(a);
+  }
+}
+
+function updateMasa3D(cam: THREE.PerspectiveCamera): void {
+  if (MASA3.roof) MASA3.roof.visible = cam.position.y < HALL_H - 0.4;
+  const kind = started && scene.id === "makkah" ? saieKind() : null;
+  const north = S.saieCount % 2 === 0; // menuju Marwah
+  const sign = north ? 1 : -1;
+  MASA3.arrows.forEach((a, i) => {
+    a.visible = !!kind && SET.arrow;
+    if (!a.visible) return;
+    a.rotation.y = north ? 0 : Math.PI;
+    (a.material as THREE.MeshBasicMaterial).opacity = 0.22 + 0.45 * (0.5 + 0.5 * Math.sin(T.time * 4 + i * 0.9 * sign));
+  });
 }
 
 function addSkyline(g: THREE.Group): void {
@@ -1030,7 +1335,11 @@ function makeMarkers(sc: THREE.Scene): void {
   ag.rotateX(-Math.PI / 2);
   R3.arrow = mesh(ag, basic("#f2c230", { side: THREE.DoubleSide, depthTest: false, transparent: true }), 0, 0.12, 0, false);
   R3.arrow.renderOrder = 5;
-  sc.add(R3.tRing, R3.tGem, R3.tBeam, R3.iRing, R3.arrow);
+  R3.qArrow = mesh(ag, basic("#2fbf6a", { side: THREE.DoubleSide, depthTest: false, transparent: true }), 0, 0.14, 0, false);
+  R3.qArrow.renderOrder = 6;
+  R3.qArrow.scale.setScalar(1.3);
+  R3.qArrow.visible = false;
+  sc.add(R3.tRing, R3.tGem, R3.tBeam, R3.iRing, R3.arrow, R3.qArrow);
   for (let i = 0; i < 40; i++) {
     const s = mesh(new THREE.SphereGeometry(0.16, 6, 5), lam("#6f6a60"), 0, -10, 0, false);
     s.visible = false;
@@ -1062,6 +1371,9 @@ function ensureWorld(): void {
   if (R3.world && R3.world.id === scene.id) return;
   disposeWorld();
   mathInit();
+  MASA3.roof = null;
+  MASA3.arrows = [];
+  MASA3.box = null;
   BUILD_TEX = [];
   const sc = scene;
   const g = new THREE.Group();
@@ -1190,6 +1502,9 @@ function addM3(g: THREE.Group, d: M3, lamps: THREE.Vector3[], seed: number): voi
       break;
     case "stars":
       addStarfield(g);
+      break;
+    case "masa":
+      addMasa(g, d);
       break;
   }
 }
@@ -1476,6 +1791,13 @@ function update3D(dt: number): void {
     const pitch = top ? C3.topPitch : C3.pitch;
     const dist = top ? C3.topDist : C3.dist;
     _v.set(tx + Math.sin(C3.yaw) * Math.cos(pitch) * dist, 1.2 + Math.sin(pitch) * dist, tz + Math.cos(C3.yaw) * Math.cos(pitch) * dist);
+    const mb = MASA3.box;
+    if (!top && mb && inMasa(P)) {
+      // dalam dewan Mas'a: kamera kekal di dalam dewan supaya tidak terlindung dinding
+      _v.x = clamp(_v.x, (mb.x0 + 14) * K3, (mb.x1 - 14) * K3);
+      _v.z = clamp(_v.z, (mb.y0 + 14) * K3, (mb.y1 - 14) * K3);
+      _v.y = Math.min(_v.y, HALL_H - 1.2);
+    }
     cam.position.lerp(_v, Math.min(1, dt * 9));
     // pandang sedikit ke hadapan pemain supaya kawasan di hadapan kelihatan di bawah kad tugasan
     const ahead = top ? 0 : Math.min(5, dist * 0.3);
@@ -1485,6 +1807,7 @@ function update3D(dt: number): void {
       cam.updateProjectionMatrix();
     }
   }
+  updateMasa3D(cam);
   // matahari mengikut pemain (supaya bayang sentiasa tajam di sekeliling)
   if (R3.sun) {
     R3.sun.position.set(tx + 34, 70, tz + 26);
@@ -1568,6 +1891,17 @@ function update3D(dt: number): void {
       R3.arrow.rotation.y = a + Math.PI;
     }
   }
+  if (R3.qArrow) {
+    const on = needKaabahHint();
+    R3.qArrow.visible = on;
+    if (on) {
+      const a = Math.atan2(-P.x, -P.y);
+      const R = C3.mode === "eye" ? 3.4 : 2.8;
+      R3.qArrow.position.set(tx + Math.sin(a) * R, 0.14, tz + Math.cos(a) * R);
+      R3.qArrow.rotation.y = a + Math.PI;
+      R3.qArrow.scale.setScalar(1.3 + Math.sin(T.time * 5) * 0.1);
+    }
+  }
   if (R3.iRing) {
     const it = bestInteract;
     const on = !!it && !!it.ring && it.enabled();
@@ -1630,6 +1964,11 @@ function drawOverlay3D(): void {
     ctx.fillText(L.text, s.x, s.y + 0.5);
   }
   ctx.globalAlpha = 1;
+  if (R3.qArrow && R3.qArrow.visible) {
+    const q = R3.qArrow.position;
+    const s = proj(q.x / K3, q.z / K3, 0.9);
+    if (s) drawPill(s.x, s.y - 14, "ARAH KAABAH", "#1f7a3f");
+  }
   for (const f of floaters) {
     const s = proj(f.x, f.y + 40, 2.8 + f.t * 0.9);
     if (!s) continue;

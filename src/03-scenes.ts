@@ -506,6 +506,21 @@ function buildMakkah(): Scene {
   m3({ k: "gate", x0: -80, x1: 80, y: 600 });
   m3({ k: "green", x0: MASA.x0, x1: MASA.x1, y: MASA.g1 });
   m3({ k: "green", x0: MASA.x0, x1: MASA.x1, y: MASA.g2 });
+  m3({
+    k: "masa",
+    x0: MASA.x0,
+    x1: MASA.x1,
+    y0: -600,
+    y1: 600,
+    g1: MASA.g1,
+    g2: MASA.g2,
+    west: [
+      [-380, -300],
+      [-70, 70],
+      [300, 380],
+    ],
+    east: [[-470, -410]],
+  });
   m3({ k: "skyline" });
   // dinding Hijir Ismail (lengkok rendah dengan bukaan di kedua-dua hujung)
   {
@@ -612,8 +627,9 @@ function buildMakkah(): Scene {
   sc.props.push(minaretProp(600, -600, 160));
   sc.solids.push({ t: "c", x: -104, y: 612, r: 12 }, { t: "c", x: 104, y: 612, r: 12 });
   // Bukit Safa & Marwah
-  sc.props.push(rockCluster(535, 562, 110, 11));
-  sc.props.push(rockCluster(535, -562, 110, 23));
+  // batu 3D Safa & Marwah dibina oleh dewan Mas'a (lebih rendah supaya kamera tidak terhalang)
+  sc.props.push(rockCluster(535, 562, 110, 11, undefined, false));
+  sc.props.push(rockCluster(535, -562, 110, 23, undefined, false));
   sc.solids.push({ t: "e", x: 535, y: 580, rx: 62, ry: 18 }, { t: "e", x: 535, y: -580, rx: 62, ry: 18 });
   // Kedai gunting
   sc.solids.push({ t: "r", x: 650, y: -590, w: 160, h: 90 });
