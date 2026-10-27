@@ -99,10 +99,8 @@ function romSimpan(p: Partial<RomSimpan>): void {
   saveJSON(ROM_KEY, { ...romSimpanan(), ...p });
 }
 
-// alamat pelayan: ?pelayan=..., CONFIG.rombongan, atau laman yang sama (hos Cloudflare)
+// API dan WebSocket hanya menggunakan pelayan dipercayai, bukan parameter jemputan.
 function romServer(): string {
-  const q = new URLSearchParams(location.search).get("pelayan");
-  if (q) return q.replace(/\/$/, "");
   if (CONFIG.rombongan) return CONFIG.rombongan.replace(/\/$/, "");
   return /^https?:$/.test(location.protocol) ? location.origin : "";
 }

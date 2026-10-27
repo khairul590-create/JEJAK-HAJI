@@ -20,7 +20,7 @@ let code = fs.readFileSync('dist/main.js','utf8');
 code = code.replace(/\}\)\(\);\s*$/, `window.testApi={
   setup(gender='L'){S=newSave('Test',gender);S.step=1;started=true;modalOpen=false;overlayBusy=false;loadScene('miqat');applyOutfit();},
   get S(){return S},get activity(){return miqatActivity},get room(){return insideMiqat},
-  get scene(){return scene},get target(){return stepTarget()},get pose(){return miqatPrayerPose()},
+  get scene(){return scene},get target(){return stepTarget()},get pose(){return miqatPrayerPose()},romServer,
   P,R3,C3,enterMiqatInterior,leaveMiqatInterior,startMiqatActivity,updateMiqatActivity,
   resetMiqatActivity,miqatPrivate,makeRig,updateRig,loadScene,PRAYER_SEQUENCE,
   finishMiqatActivity,validate:validSave,setStep(id){S.step=ALL_STEPS.findIndex(x=>x.step.id===id)},
@@ -30,6 +30,9 @@ code = code.replace(/\}\)\(\);\s*$/, `window.testApi={
 };})();`);
 w.eval(code);
 const a = w.testApi;
+w.history.replaceState({}, '', '/?pelayan=https://untrusted.example');
+assert.equal(a.romServer(), 'https://example.test', 'Invitation cannot redirect saved leader credentials');
+w.history.replaceState({}, '', '/');
 function complete(kind) { a.startMiqatActivity(kind); assert.equal(a.activity?.kind,kind); a.updateMiqatActivity(30); }
 a.setup(); a.enterMiqatInterior('wash');
 assert.equal(a.room,'wash');

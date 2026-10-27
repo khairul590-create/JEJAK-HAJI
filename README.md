@@ -89,11 +89,24 @@ dan boleh dibuka dalam game melalui Panduan → Rujukan atau Peta → Rujukan.
 Semua teks pendidikan ada dalam `src/00-config.ts` (DOA, READ, QUIZ_UMRAH, QUIZ_FINAL, ACH_LIST, LAP_TIPS).
 Nama game dan kredit: `CONFIG.title`, `CONFIG.credit`.
 
-## GitHub Pages
-Game ini diterbitkan di https://khairul590-create.github.io/JEJAK-HAJI/ daripada cawangan `gh-pages`.
-Setiap push ke `main` menjalankan `.github/workflows/pages.yml`: ia membina semula game daripada `src/`
-(tsc + `node build.mjs`) dan menyalin `dist/jejak-haji.html` ke `index.html` dalam `gh-pages`.
-Jika semakan TypeScript gagal, laman tidak dikemas kini — lihat tab Actions.
+## Hosting utama: Cloudflare
+Game kini di https://jejak-haji.taginamburedu.workers.dev/ melalui Worker + static assets, dengan pelayan Rombongan pada asal yang sama.
+
+Penerbitan manual yang disahkan:
+```bash
+npm install && npm test
+npm install --prefix server
+npm run check --prefix server
+npm run siap --prefix server
+CLOUDFLARE_ACCOUNT_ID=c9327fb5797e6ead5e9d27f8b1c94185 npm run deploy --prefix server
+TEST_URL=https://jejak-haji.taginamburedu.workers.dev node server/test-hosting.mjs
+```
+Wrangler menggunakan login Cloudflare yang dibenarkan. `.github/workflows/cloudflare.yml` boleh dijalankan selepas dua rahsia Actions dalam `docs/ROMBONGAN.md` disediakan; jika belum ada, workflow gagal jelas dan tidak mendakwa deployment berjaya.
+
+### Sandaran GitHub Pages
+https://khairul590-create.github.io/JEJAK-HAJI/ dikekalkan sebagai sandaran lama. Workflow `pages.yml` kini manual sahaja, bukan hosting utama.
+
+**Had data semasa:** kemajuan dan markah permainan masih storan pelayar, belum rekod murid berpusat. Migrasi hosting ini tidak menambah akaun murid, pangkalan data markah atau admin; kerja tersebut ialah fasa seterusnya.
 
 ## Letak dalam Google Sites
 Sisip → Benamkan → Kod benaman → tampal isi `dist/jejak-haji.html`.

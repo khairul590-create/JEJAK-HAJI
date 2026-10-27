@@ -1,14 +1,12 @@
-# Terbitkan game + pelayan Rombongan ke Cloudflare Workers setiap kali ada push ke main.
+# Terbit manual game + pelayan Rombongan ke Cloudflare Workers.
 # Perlu dua rahsia repo (Settings → Secrets and variables → Actions):
 #   CLOUDFLARE_API_TOKEN   token API dengan templat "Edit Cloudflare Workers"
 #   CLOUDFLARE_ACCOUNT_ID  ID akaun Cloudflare
-# Jika rahsia belum ditetapkan, aliran ini dilangkau (GitHub Pages tetap berfungsi).
+# Jika rahsia belum ditetapkan, aliran ini gagal dengan jelas; terbit manual menggunakan Wrangler OAuth masih boleh dilakukan.
 # Lihat docs/ROMBONGAN.md.
 name: Terbit ke Cloudflare
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -32,7 +30,8 @@ jobs:
             echo "ada=1" >> "$GITHUB_OUTPUT"
           else
             echo "ada=0" >> "$GITHUB_OUTPUT"
-            echo "::notice::Rahsia CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID belum ditetapkan. Langkau terbitan Cloudflare (lihat docs/ROMBONGAN.md)."
+            echo "::error::Rahsia CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID belum ditetapkan. Tiada deployment dilakukan (lihat docs/ROMBONGAN.md)."
+            exit 1
           fi
 
       - name: Ambil kod main

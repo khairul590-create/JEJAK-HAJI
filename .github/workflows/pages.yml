@@ -1,10 +1,7 @@
-# Bina game daripada src/ dan terbitkan ke GitHub Pages (cawangan gh-pages)
-# setiap kali ada push ke main. Boleh juga dijalankan manual dari tab Actions.
+# Sandaran GitHub Pages; terbit manual sahaja. Hosting utama ialah Cloudflare.
 name: Terbit ke GitHub Pages
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

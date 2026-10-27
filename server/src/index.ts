@@ -33,7 +33,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", ...CORS } });
+  return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...CORS } });
 }
 function rawak(n: number, abjad = HURUF): string {
   const b = crypto.getRandomValues(new Uint8Array(n));
@@ -93,7 +93,7 @@ export default {
       return env.ROMBONGAN.get(env.ROMBONGAN.idFromName(kod)).fetch(req);
     }
 
-    if (p.startsWith("/api/") || p.startsWith("/ws/")) return json({ ralat: "Tiada" }, 404);
+    if (p === "/api" || p.startsWith("/api/") || p === "/ws" || p.startsWith("/ws/")) return json({ ralat: "Tiada" }, 404);
     if (env.ASSETS) return env.ASSETS.fetch(req);
     return new Response("Jejak Haji: pelayan rombongan", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   },
